@@ -32,8 +32,10 @@ public class ProjectConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.httpBasic(httpBasic -> {});
 
-        http.authorizeHttpRequests(auth ->
-                auth.anyRequest().permitAll()
+        http.authorizeHttpRequests(auth -> auth
+                .requestMatchers("/api/driver/**").hasRole("DRIVER")
+                .requestMatchers("/api/manager/**").hasRole("MANAGER")
+                .anyRequest().authenticated()
         );
 
         return http.build();
