@@ -4,6 +4,7 @@ import com.example.distribution_backernd.model.LocationLog;
 import com.example.distribution_backernd.model.User;
 import com.example.distribution_backernd.repository.LocationLogRepository;
 import com.example.distribution_backernd.repository.UserRepository;
+import com.example.distribution_backernd.service.LocationStreamService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
@@ -29,7 +30,8 @@ public class LocationController {
     @Autowired
     private UserRepository userRepo;
 
-    private final Map<Integer, List<SseEmitter>> activeStreams = new ConcurrentHashMap<>();
+    @Autowired
+    private LocationStreamService streamService;
 
     @GetMapping("/hello")
     public String hello() {
@@ -56,15 +58,7 @@ public class LocationController {
 
     @GetMapping(value = "/stream", produces = "text/event-stream")
     public SseEmitter streamDriverLocation(@RequestParam Integer userId) {
-        SseEmitter emitter = new SseEmitter(1800000L);
-
-        activeStreams.computeIfAbsent(userId, k -> new CopyOnWriteArrayList<>()).add(emitter);
-
-        emitter.onCompletion(() -> removeEmitter(userId, emitter));
-        emitter.onTimeout(() -> removeEmitter(userId, emitter));
-        emitter.onError((e) -> removeEmitter(userId, emitter));
-
-        return emitter;
+        return streamService.createStream(userId);
     }
 
 
@@ -73,30 +67,9 @@ public class LocationController {
         newLog.setRecordedAt(ZonedDateTime.now());
         LocationLog savedLog = logRepo.save(newLog);
 
-        List<SseEmitter> emitters = activeStreams.get(savedLog.getUserId());
-        if (emitters != null) {
-            for (SseEmitter emitter : emitters) {
-                try {
-                    emitter.send(SseEmitter.event()
-                            .name("location-update")
-                            .data(savedLog));
-                } catch (IOException e) {
-                    removeEmitter(savedLog.getUserId(), emitter);
-                }
-            }
-        }
+        streamService.broadcastLocation(newLog);
 
         return savedLog;
-    }
-
-    private void removeEmitter(Integer userId, SseEmitter emitter) {
-        List<SseEmitter> emitters = activeStreams.get(userId);
-        if (emitters != null) {
-            emitters.remove(emitter);
-            if (emitters.isEmpty()) {
-                activeStreams.remove(userId);
-            }
-        }
     }
 
     @PostMapping("/register-worker")
