@@ -7,22 +7,18 @@ import com.example.distribution_backernd.repository.UserRepository;
 import com.example.distribution_backernd.service.LocationStreamService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
-import org.springframework.http.ResponseEntity;
 
-import java.io.IOException;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
-
 
 @RestController
-@RequestMapping("/api/locations")
+@RequestMapping("/api/manager/locations")
 @CrossOrigin(origins = "*")
-public class LocationController {
+public class ManagerLocationController {
 
     @Autowired
     private LocationLogRepository logRepo;
@@ -59,17 +55,6 @@ public class LocationController {
     @GetMapping(value = "/stream", produces = "text/event-stream")
     public SseEmitter streamDriverLocation(@RequestParam Integer userId) {
         return streamService.createStream(userId);
-    }
-
-
-    @PostMapping("/log")
-    public LocationLog logLocation(@RequestBody LocationLog newLog) {
-        newLog.setRecordedAt(ZonedDateTime.now());
-        LocationLog savedLog = logRepo.save(newLog);
-
-        streamService.broadcastLocation(newLog);
-
-        return savedLog;
     }
 
     @PostMapping("/register-worker")
