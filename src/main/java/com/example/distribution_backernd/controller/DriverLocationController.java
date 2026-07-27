@@ -4,6 +4,7 @@ import com.example.distribution_backernd.model.LocationLog;
 import com.example.distribution_backernd.repository.LocationLogRepository;
 import com.example.distribution_backernd.repository.UserRepository;
 import com.example.distribution_backernd.service.LocationStreamService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -12,13 +13,10 @@ import java.time.ZonedDateTime;
 @RestController
 @RequestMapping("/api/driver/locations")
 @CrossOrigin(origins = "*")
+@RequiredArgsConstructor
 public class DriverLocationController {
-
-    @Autowired
-    private LocationLogRepository logRepo;
-
-    @Autowired
-    private LocationStreamService streamService;
+    private final LocationLogRepository logRepo;
+    private final LocationStreamService streamService;
 
     @GetMapping("/hello")
     public String hello() {

@@ -5,6 +5,7 @@ import com.example.distribution_backernd.model.User;
 import com.example.distribution_backernd.repository.LocationLogRepository;
 import com.example.distribution_backernd.repository.UserRepository;
 import com.example.distribution_backernd.service.LocationStreamService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
@@ -18,16 +19,11 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/manager/locations")
 @CrossOrigin(origins = "*")
+@RequiredArgsConstructor
 public class ManagerLocationController {
-
-    @Autowired
-    private LocationLogRepository logRepo;
-
-    @Autowired
-    private UserRepository userRepo;
-
-    @Autowired
-    private LocationStreamService streamService;
+    private final LocationLogRepository logRepo;
+    private final UserRepository userRepo;
+    private final LocationStreamService streamService;
 
     @GetMapping("/hello")
     public String hello() {
