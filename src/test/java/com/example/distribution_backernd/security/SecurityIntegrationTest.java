@@ -33,4 +33,31 @@ class SecurityIntegrationTest {
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk());
     }
+
+    @Test
+    void shouldAllowDriverAccessToDriverEndpoint() throws Exception {
+        String token = jwtUtil.generateToken("driver1");
+
+        mockMvc.perform(get("/api/driver/locations/hello")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void shouldDenyDriverAccessToManagerEndpoint() throws Exception {
+        String token = jwtUtil.generateToken("driver1");
+
+        mockMvc.perform(get("/api/manager/locations/hello")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void shouldDenyManagerAccessToDriverEndpoint() throws Exception {
+        String token = jwtUtil.generateToken("boss");
+
+        mockMvc.perform(get("/api/driver/deliveries")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isForbidden());
+    }
 }
