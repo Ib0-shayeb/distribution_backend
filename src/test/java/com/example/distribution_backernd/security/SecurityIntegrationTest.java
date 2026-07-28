@@ -60,4 +60,30 @@ class SecurityIntegrationTest {
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isForbidden());
     }
+
+    @Test
+    void shouldRejectTamperedToken() throws Exception {
+        String validToken = jwtUtil.generateToken("boss");
+        String tamperedToken = validToken + "tamperedExtraChars";
+
+        mockMvc.perform(get("/api/manager/locations/hello")
+                        .header("Authorization", "Bearer " + tamperedToken))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void shouldRejectMalformedAuthorizationHeader() throws Exception {
+        String validToken = jwtUtil.generateToken("boss");
+
+        mockMvc.perform(get("/api/manager/locations/hello")
+                        .header("Authorization", validToken))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void shouldRejectCompletelyGarbageToken() throws Exception {
+        mockMvc.perform(get("/api/manager/locations/hello")
+                        .header("Authorization", "Bearer blabla-fake-token"))
+                .andExpect(status().isUnauthorized());
+    }
 }
