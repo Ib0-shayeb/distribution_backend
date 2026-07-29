@@ -1,11 +1,12 @@
 package com.example.distribution_backernd.controller;
 
 import com.example.distribution_backernd.model.LocationLog;
+import com.example.distribution_backernd.model.User;
 import com.example.distribution_backernd.repository.LocationLogRepository;
 import com.example.distribution_backernd.repository.UserRepository;
 import com.example.distribution_backernd.service.LocationStreamService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.ZonedDateTime;
@@ -15,7 +16,9 @@ import java.time.ZonedDateTime;
 @CrossOrigin(origins = "*")
 @RequiredArgsConstructor
 public class DriverLocationController {
+
     private final LocationLogRepository logRepo;
+    private final UserRepository userRepo;
     private final LocationStreamService streamService;
 
     @GetMapping("/hello")
@@ -24,11 +27,17 @@ public class DriverLocationController {
     }
 
     @PostMapping("/log")
-    public LocationLog logLocation(@RequestBody LocationLog newLog) {
-        newLog.setRecordedAt(ZonedDateTime.now());
-        LocationLog savedLog = logRepo.save(newLog);
+    public LocationLog logLocation(@RequestBody LocationLog newLog, Authentication authentication) {
+        String username = authentication.getName();
 
-        streamService.broadcastLocation(newLog);
+        User driver = userRepo.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Driver not found with username: " + username));
+
+        newLog.setUserId(driver.getId());
+        newLog.setRecordedAt(ZonedDateTime.now());
+
+        LocationLog savedLog = logRepo.save(newLog);
+        streamService.broadcastLocation(savedLog);
 
         return savedLog;
     }
