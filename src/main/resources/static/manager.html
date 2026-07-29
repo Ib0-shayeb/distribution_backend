@@ -381,7 +381,7 @@
         const feedback = document.getElementById('loginFeedback');
 
         try {
-            const response = await fetch('http://localhost:8080/api/auth/login', {
+            const response = await fetch('/api/auth/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username: userVal, password: passVal })
@@ -445,8 +445,8 @@
 
         try {
             const [usersResponse, activeResponse] = await Promise.all([
-                fetch('http://localhost:8080/api/manager/locations/all-workers', { headers: getRequestHeaders() }),
-                fetch('http://localhost:8080/api/manager/locations/active', { headers: getRequestHeaders() })
+                fetch('/api/manager/locations/all-workers', { headers: getRequestHeaders() }),
+                fetch('/api/manager/locations/active', { headers: getRequestHeaders() })
             ]);
 
             if (usersResponse.status === 401 || usersResponse.status === 403) {
@@ -566,7 +566,7 @@
 
         try {
             const fetchPromises = Array.from(selectedUserIds).map(userId =>
-                fetch(`http://localhost:8080/api/manager/locations/history?userId=${userId}&start=${encodeURIComponent(startISO)}&end=${encodeURIComponent(endISO)}`, {
+                fetch(`/api/manager/locations/history?userId=${userId}&start=${encodeURIComponent(startISO)}&end=${encodeURIComponent(endISO)}`, {
                     headers: getRequestHeaders()
                 })
                     .then(res => res.ok ? res.json() : [])
@@ -611,7 +611,7 @@
 
         const token = localStorage.getItem('token');
         const authParam = token ? `&token=${encodeURIComponent(token)}` : '';
-        const source = new EventSource(`http://localhost:8080/api/locations/stream?userId=${userId}${authParam}`);
+        const source = new EventSource(`/api/locations/stream?userId=${userId}${authParam}`);
 
         source.addEventListener('location-update', (event) => {
             appendLivePointToMap(userId, JSON.parse(event.data));
@@ -670,7 +670,7 @@
         const feedback = document.getElementById('adminCredsFeedback');
 
         try {
-            const response = await fetch(`http://localhost:8080/api/auth/update-password?userId=${userId}`, {
+            const response = await fetch(`/api/auth/update-password?userId=${userId}`, {
                 method: 'PUT',
                 headers: getRequestHeaders(),
                 body: JSON.stringify({ password: newPassword })
@@ -698,7 +698,7 @@
         const feedback = document.getElementById('regWorkerFeedback');
 
         try {
-            const response = await fetch('http://localhost:8080/api/manager/locations/register-worker', {
+            const response = await fetch('/api/manager/locations/register-worker', {
                 method: 'POST',
                 headers: getRequestHeaders(),
                 body: JSON.stringify({ name: name, phoneNumber: phone })
