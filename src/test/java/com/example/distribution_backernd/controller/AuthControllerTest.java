@@ -1,4 +1,4 @@
-package com.example.distribution_backernd.security;
+package com.example.distribution_backernd.controller;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
