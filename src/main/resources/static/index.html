@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fleet Distribution Tracker - Admin</title>
-    
+
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    
+
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -59,6 +59,15 @@
         }
         .nav-btn.primary:hover {
             background-color: #7dd3fc;
+        }
+        .nav-btn.danger {
+            background-color: #334155;
+            color: #ef4444;
+            border-color: #475569;
+        }
+        .nav-btn.danger:hover {
+            background-color: #ef4444;
+            color: #ffffff;
         }
         #main-container {
             display: none; /* Hidden until authenticated */
@@ -191,7 +200,7 @@
             min-height: 20px;
         }
 
-        /* Boss Authentication Screening Gateway Overlay */
+        /* Login Overlay */
         #login-overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -205,265 +214,300 @@
 </head>
 <body>
 
-    <div id="login-overlay">
-        <div class="view-content" style="margin: 0; width: 100%;">
-            <h3 style="text-align: center;">Boss Portal Login</h3>
-            <div class="form-group">
-                <label>Username</label>
-                <input type="text" id="loginUsername" placeholder="e.g. boss" style="width:100%; box-sizing:border-box;">
+<div id="login-overlay">
+    <div class="view-content" style="margin: 0; width: 100%;">
+        <h3 style="text-align: center;">Boss Portal Login</h3>
+        <div class="form-group">
+            <label>Username</label>
+            <input type="text" id="loginUsername" placeholder="e.g. boss" style="width:100%; box-sizing:border-box;">
+        </div>
+        <div class="form-group">
+            <label>Password</label>
+            <input type="password" id="loginPassword" placeholder="••••••••" style="width:100%; box-sizing:border-box;">
+        </div>
+        <button id="submitLoginBtn" class="action-btn" style="width: 100%;">Access Dashboard</button>
+        <div id="loginFeedback" class="feedback-msg"></div>
+    </div>
+</div>
+
+<div id="navbar">
+    <h1>Fleet Control Center</h1>
+    <div class="nav-links">
+        <button class="nav-btn" onclick="showView('map-view')">Tracking Map</button>
+        <button class="nav-btn" onclick="showView('creds-view')">Credential Manager</button>
+        <button class="nav-btn primary" onclick="showView('register-view')">+ Register Worker</button>
+        <button class="nav-btn danger" onclick="logout()">Logout</button>
+    </div>
+</div>
+
+<div id="main-container">
+
+    <div id="sidebar">
+        <h2>Active Fleet Roster</h2>
+
+        <div class="form-group">
+            <label style="font-weight: bold; font-size: 0.9rem; color: #38bdf8;">Select Drivers</label>
+            <div id="rosterContainer" style="display: flex; flex-direction: column; gap: 10px; margin-top: 5px; max-height: 280px; overflow-y: auto;">
+                <p id="rosterLoadingText" style="color: #64748b; font-size: 0.9rem;">Connecting to fleet database...</p>
             </div>
-            <div class="form-group">
-                <label>Password</label>
-                <input type="password" id="loginPassword" placeholder="••••••••" style="width:100%; box-sizing:border-box;">
-            </div>
-            <button id="submitLoginBtn" class="action-btn" style="width: 100%;">Access Dashboard</button>
-            <div id="loginFeedback" class="feedback-msg"></div>
+        </div>
+
+        <div class="form-group" style="flex-direction: row; align-items: center; gap: 10px; padding: 10px; background-color: #0f172a; border-radius: 6px; border: 1px dashed #334155;">
+            <input type="checkbox" id="liveToggle" style="width: 18px; height: 18px; cursor: pointer;">
+            <label for="liveToggle" style="cursor: pointer; font-weight: bold; color: #22c55e; font-size: 0.9rem;">Enable Live Streaming</label>
+        </div>
+
+        <div class="form-group">
+            <label for="startTime">Start Time</label>
+            <input type="datetime-local" id="startTime" value="2026-06-25T08:00">
+        </div>
+
+        <div class="form-group">
+            <label for="endTime">End Time</label>
+            <input type="datetime-local" id="endTime" value="2026-06-25T17:00">
+        </div>
+
+        <div id="stats">
+            <strong>Status:</strong> <span id="statusText">Ready</span><br>
+            <strong>Points Loaded:</strong> <span id="pointsCount">0</span>
         </div>
     </div>
 
-    <div id="navbar">
-        <h1>Fleet Control Center</h1>
-        <div class="nav-links">
-            <button class="nav-btn" onclick="showView('map-view')">Tracking Map</button>
-            <button class="nav-btn" onclick="showView('creds-view')">Credential Manager</button>
-            <button class="nav-btn primary" onclick="showView('register-view')">+ Register Worker</button>
+    <div id="map"></div>
+
+    <div id="creds-view" class="admin-view">
+        <div class="view-content">
+            <h3>Credential Manager</h3>
+            <div class="form-group">
+                <label>Target User ID (Database Key)</label>
+                <input type="text" id="adminTargetUserId" placeholder="e.g. 1, 2, 15">
+            </div>
+            <div class="form-group">
+                <label>Set New Password</label>
+                <input type="password" id="adminNewPassword" placeholder="Enter secure password">
+            </div>
+            <button id="updateCredsBtn" class="action-btn" style="width: 100%;">Commit Security Update</button>
+            <div id="adminCredsFeedback" class="feedback-msg"></div>
         </div>
     </div>
 
-    <div id="main-container">
-        
-        <div id="sidebar">
-            <h2>Active Fleet Roster</h2>
-            
+    <div id="register-view" class="admin-view">
+        <div class="view-content">
+            <h3>Register New Driver</h3>
             <div class="form-group">
-                <label style="font-weight: bold; font-size: 0.9rem; color: #38bdf8;">Select Drivers</label>
-                <div id="rosterContainer" style="display: flex; flex-direction: column; gap: 10px; margin-top: 5px; max-height: 280px; overflow-y: auto;">
-                    <p id="rosterLoadingText" style="color: #64748b; font-size: 0.9rem;">Connecting to fleet database...</p>
-                </div>
+                <label>Full Name</label>
+                <input type="text" id="regWorkerName" placeholder="John Doe">
             </div>
-
-            <div class="form-group" style="flex-direction: row; align-items: center; gap: 10px; padding: 10px; background-color: #0f172a; border-radius: 6px; border: 1px dashed #334155;">
-                <input type="checkbox" id="liveToggle" style="width: 18px; height: 18px; cursor: pointer;">
-                <label for="liveToggle" style="cursor: pointer; font-weight: bold; color: #22c55e; font-size: 0.9rem;">Enable Live Streaming</label>
-            </div>
-
             <div class="form-group">
-                <label for="startTime">Start Time</label>
-                <input type="datetime-local" id="startTime" value="2026-06-25T08:00">
+                <label>Phone Number</label>
+                <input type="text" id="regWorkerPhone" placeholder="+48 123 456 789">
             </div>
-
-            <div class="form-group">
-                <label for="endTime">End Time</label>
-                <input type="datetime-local" id="endTime" value="2026-06-25T17:00">
-            </div>
-
-            <div id="stats">
-                <strong>Status:</strong> <span id="statusText">Ready</span><br>
-                <strong>Points Loaded:</strong> <span id="pointsCount">0</span>
-            </div>
+            <button id="registerWorkerBtn" class="action-btn" style="width: 100%;">Save Driver Instance</button>
+            <div id="regWorkerFeedback" class="feedback-msg"></div>
         </div>
-
-        <div id="map"></div>
-
-        <div id="creds-view" class="admin-view">
-            <div class="view-content">
-                <h3>Credential Manager</h3>
-                <div class="form-group">
-                    <label>Target User ID (Database Key)</label>
-                    <input type="text" id="adminTargetUserId" placeholder="e.g. 1, 2, 15">
-                </div>
-                <div class="form-group">
-                    <label>Set New Password</label>
-                    <input type="password" id="adminNewPassword" placeholder="Enter secure password">
-                </div>
-                <button id="updateCredsBtn" class="action-btn" style="width: 100%;">Commit Security Update</button>
-                <div id="adminCredsFeedback" class="feedback-msg"></div>
-            </div>
-        </div>
-
-        <div id="register-view" class="admin-view">
-            <div class="view-content">
-                <h3>Register New Driver</h3>
-                <div class="form-group">
-                    <label>Full Name</label>
-                    <input type="text" id="regWorkerName" placeholder="John Doe">
-                </div>
-                <div class="form-group">
-                    <label>Phone Number</label>
-                    <input type="text" id="regWorkerPhone" placeholder="+48 123 456 789">
-                </div>
-                <button id="registerWorkerBtn" class="action-btn" style="width: 100%;">Save Driver Instance</button>
-                <div id="regWorkerFeedback" class="feedback-msg"></div>
-            </div>
-        </div>
-
     </div>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</div>
 
-    <script>
-        let map = null;
-        let routesGroup = null;
-        let markersGroup = null;
-        
-        const selectedUserIds = new Set();
-        const pathColors = ['#0ea5e9', '#ef4444', '#10b981', '#f59e0b', '#a855f7', '#ec4899'];
-        let workerColorMapping = {};
-        
-        const activeEventSources = new Map();
-        const workerPaths = new Map();
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-        // Helper function to build headers including Authorization token if it exists
-        function getRequestHeaders() {
-            const token = localStorage.getItem('token');
-            const headers = { 'Content-Type': 'application/json' };
-            if (token) {
-                headers['Authorization'] = `Bearer ${token}`;
-            }
-            return headers;
+<script>
+    let map = null;
+    let routesGroup = null;
+    let markersGroup = null;
+
+    const selectedUserIds = new Set();
+    const pathColors = ['#0ea5e9', '#ef4444', '#10b981', '#f59e0b', '#a855f7', '#ec4899'];
+    let workerColorMapping = {};
+
+    const activeEventSources = new Map();
+    const workerPaths = new Map();
+
+    // --- Persistent Session Auto-Loader ---
+    window.addEventListener('DOMContentLoaded', () => {
+        const token = localStorage.getItem('token');
+        if (token) {
+            showDashboard();
         }
+    });
 
-        // --- Boss Gate Access Gateway Sign-In Action ---
-        document.getElementById('submitLoginBtn').onclick = async () => {
-            const userVal = document.getElementById('loginUsername').value;
-            const passVal = document.getElementById('loginPassword').value;
-            const feedback = document.getElementById('loginFeedback');
+    function showDashboard() {
+        document.getElementById('login-overlay').style.display = 'none';
+        document.getElementById('navbar').style.display = 'flex';
+        document.getElementById('main-container').style.display = 'flex';
 
-            try {
-                // Sends structured payload directly targeting the dynamic fields inside your DTO object
-                const response = await fetch('http://localhost:8080/api/auth/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username: userVal, password: passVal })
-                });
+        initializeTrackingMap();
+        renderFleetRoster();
+    }
 
-                if (response.ok) {
-                    const data = await response.json();
-                    
-                    // Assert permissions filter profile logic on the returned payload parameters
-                    if (data.role === 'BOSS' || data.role === 'ADMIN') {
-                        // Secure your JWT inside runtime storage cache configurations
-                        localStorage.setItem('token', data.token);
+    function logout() {
+        localStorage.removeItem('token');
 
-                        // Tear down authentication overlay block out
-                        document.getElementById('login-overlay').style.display = 'none';
-                        // Render control center components cleanly
-                        document.getElementById('navbar').style.display = 'flex';
-                        document.getElementById('main-container').style.display = 'flex';
-                        
-                        // Lazy initialize map dimensions inside newly sized flex containers
-                        initializeTrackingMap();
-                        renderFleetRoster();
-                    } else {
-                        feedback.innerText = "Access Denied: Account role layout is unauthorized.";
-                        feedback.style.color = "#ef4444";
-                    }
+        // Clean up running SSE streams and state
+        activeEventSources.forEach(source => source.close());
+        activeEventSources.clear();
+        selectedUserIds.clear();
+        workerPaths.clear();
+
+        document.getElementById('main-container').style.display = 'none';
+        document.getElementById('navbar').style.display = 'none';
+        document.getElementById('login-overlay').style.display = 'flex';
+        document.getElementById('loginUsername').value = '';
+        document.getElementById('loginPassword').value = '';
+        document.getElementById('loginFeedback').innerText = '';
+    }
+
+    // Helper function to build headers including Authorization token
+    function getRequestHeaders() {
+        const token = localStorage.getItem('token');
+        const headers = { 'Content-Type': 'application/json' };
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+        return headers;
+    }
+
+    // Helper to format HTML datetime-local picker value into Spring-compatible ISO String
+    function formatIsoDate(localDateTimeValue) {
+        if (!localDateTimeValue) return '';
+        const d = new Date(localDateTimeValue);
+        return isNaN(d.getTime()) ? localDateTimeValue : d.toISOString();
+    }
+
+    // --- Boss Gate Sign-In Action ---
+    document.getElementById('submitLoginBtn').onclick = async () => {
+        const userVal = document.getElementById('loginUsername').value;
+        const passVal = document.getElementById('loginPassword').value;
+        const feedback = document.getElementById('loginFeedback');
+
+        try {
+            const response = await fetch('http://localhost:8080/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: userVal, password: passVal })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+
+                if (data && data.token) {
+                    localStorage.setItem('token', data.token);
+                    showDashboard();
                 } else {
-                    const txt = await response.text();
-                    feedback.innerText = txt || "Invalid username or password.";
+                    feedback.innerText = "Authentication failed: Token missing in response.";
                     feedback.style.color = "#ef4444";
                 }
-            } catch (err) {
-                feedback.innerText = "Network Error: Could not verify identity with backend.";
+            } else {
+                const txt = await response.text();
+                feedback.innerText = txt || "Invalid username or password.";
                 feedback.style.color = "#ef4444";
             }
-        };
-
-        // --- Single Page Navigation Framework Controller ---
-        function showView(viewId) {
-            document.querySelectorAll('.admin-view').forEach(view => view.style.display = 'none');
-            
-            if (viewId === 'map-view') {
-                if (map) setTimeout(() => map.invalidateSize(), 50);
-            } else {
-                document.getElementById(viewId).style.display = 'block';
-            }
+        } catch (err) {
+            feedback.innerText = "Network Error: Could not connect to authentication server.";
+            feedback.style.color = "#ef4444";
         }
+    };
 
-        // Map Initialization Functional Scope
-        function initializeTrackingMap() {
-            if (map !== null) return; 
-            
-            try {
-                map = L.map('map').setView([31.9522, 35.915], 13);
-                L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-                    attribution: '© OpenStreetMap contributors, © CARTO'
-                }).addTo(map);
+    // --- Navigation Controller ---
+    function showView(viewId) {
+        document.querySelectorAll('.admin-view').forEach(view => view.style.display = 'none');
 
-                routesGroup = L.layerGroup().addTo(map);
-                markersGroup = L.layerGroup().addTo(map);
-            } catch (mapError) {
-                console.error("Map Init Failed: ", mapError);
-                document.getElementById('rosterLoadingText').innerText = "Map Error: " + mapError.message;
-                document.getElementById('rosterLoadingText').style.color = "#ef4444";
-            }
+        if (viewId === 'map-view') {
+            if (map) setTimeout(() => map.invalidateSize(), 50);
+        } else {
+            document.getElementById(viewId).style.display = 'block';
         }
+    }
 
-        // --- Fetch and Render Live Roster ---
-        async function renderFleetRoster() {
-            const rosterContainer = document.getElementById('rosterContainer');
-            if (document.getElementById('main-container').style.display === 'none') return; 
-            
-            try {
-                const [usersResponse, activeResponse] = await Promise.all([
-                    fetch('http://localhost:8080/api/locations/all-workers', { headers: getRequestHeaders() }),
-                    fetch('http://localhost:8080/api/locations/active', { headers: getRequestHeaders() })
-                ]);
-                
-                if (!usersResponse.ok || !activeResponse.ok) {
-                    throw new Error(`HTTP Status Errors encountered.`);
-                }
+    // --- Map Initialization ---
+    function initializeTrackingMap() {
+        if (map !== null) return;
 
-                const allWorkers = await usersResponse.json();
-                const activeUserIds = await activeResponse.json(); 
+        try {
+            map = L.map('map').setView([31.9522, 35.915], 13);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+                attribution: '© OpenStreetMap contributors, © CARTO'
+            }).addTo(map);
 
-                rosterContainer.innerHTML = ''; 
+            routesGroup = L.layerGroup().addTo(map);
+            markersGroup = L.layerGroup().addTo(map);
+        } catch (mapError) {
+            console.error("Map Init Failed: ", mapError);
+            document.getElementById('rosterLoadingText').innerText = "Map Error: " + mapError.message;
+            document.getElementById('rosterLoadingText').style.color = "#ef4444";
+        }
+    }
 
-                if (allWorkers.length === 0) {
-                    rosterContainer.innerHTML = '<p style="color: #64748b; font-size: 0.9rem;">No workers registered.</p>';
-                    return;
-                }
+    // --- Fetch and Render Live Roster ---
+    async function renderFleetRoster() {
+        const rosterContainer = document.getElementById('rosterContainer');
+        if (document.getElementById('main-container').style.display === 'none') return;
 
-                allWorkers.forEach((worker, index) => {
-                    const isRecentlyActive = activeUserIds.includes(worker.id);
-                    const dotColor = isRecentlyActive ? '#22c55e' : '#64748b'; 
-                    const glowEffect = isRecentlyActive ? `box-shadow: 0 0 8px ${dotColor};` : '';
-                    const displayPhone = worker.phoneNumber ? worker.phoneNumber : 'No Phone Added';
-                    
-                    const assignedColor = pathColors[index % pathColors.length];
-                    workerColorMapping[worker.id] = { name: worker.name, color: assignedColor };
+        try {
+            const [usersResponse, activeResponse] = await Promise.all([
+                fetch('http://localhost:8080/api/manager/locations/all-workers', { headers: getRequestHeaders() }),
+                fetch('http://localhost:8080/api/manager/locations/active', { headers: getRequestHeaders() })
+            ]);
 
-                    const card = document.createElement('div');
-                    card.id = `worker-card-${worker.id}`;
-                    card.style = `
+            if (usersResponse.status === 401 || usersResponse.status === 403) {
+                logout();
+                return;
+            }
+
+            if (!usersResponse.ok || !activeResponse.ok) {
+                throw new Error(`HTTP Error: workers (${usersResponse.status}), active (${activeResponse.status})`);
+            }
+
+            const allWorkers = await usersResponse.json();
+            const activeUserIds = await activeResponse.json();
+
+            rosterContainer.innerHTML = '';
+
+            if (!allWorkers || allWorkers.length === 0) {
+                rosterContainer.innerHTML = '<p style="color: #64748b; font-size: 0.9rem;">No workers registered.</p>';
+                return;
+            }
+
+            allWorkers.forEach((worker, index) => {
+                const isRecentlyActive = activeUserIds.includes(worker.id);
+                const dotColor = isRecentlyActive ? '#22c55e' : '#64748b';
+                const glowEffect = isRecentlyActive ? `box-shadow: 0 0 8px ${dotColor};` : '';
+                const displayPhone = worker.phoneNumber ? worker.phoneNumber : 'No Phone Added';
+
+                const assignedColor = pathColors[index % pathColors.length];
+                workerColorMapping[worker.id] = { name: worker.name || `Driver ${worker.id}`, color: assignedColor };
+
+                const card = document.createElement('div');
+                card.id = `worker-card-${worker.id}`;
+                card.style = `
                         display: flex; align-items: center; justify-content: space-between;
                         padding: 12px; background-color: #0f172a; border-radius: 6px;
                         cursor: pointer; border: 1px solid #334155; transition: all 0.2s;
                     `;
-                    
-                    card.onclick = () => {
-                        const isLiveActive = document.getElementById('liveToggle').checked;
-                        const focusBtn = document.getElementById(`focus-btn-${worker.id}`);
-                        
-                        if (selectedUserIds.has(worker.id)) {
-                            selectedUserIds.delete(worker.id);
-                            card.style.borderColor = '#334155';
-                            card.style.boxShadow = 'none';
-                            if (focusBtn) focusBtn.classList.remove('active');
-                            if (isLiveActive) stopLiveSseStream(worker.id);
-                        } else {
-                            selectedUserIds.add(worker.id);
-                            card.style.borderColor = assignedColor;
-                            card.style.boxShadow = `0 0 6px ${assignedColor}40`;
-                            if (focusBtn) focusBtn.classList.add('active');
-                            if (isLiveActive) startLiveSseStream(worker.id);
-                        }
-                        fetchDriverRoute(true);
-                    };
 
-                    card.innerHTML = `
+                card.onclick = () => {
+                    const isLiveActive = document.getElementById('liveToggle').checked;
+                    const focusBtn = document.getElementById(`focus-btn-${worker.id}`);
+
+                    if (selectedUserIds.has(worker.id)) {
+                        selectedUserIds.delete(worker.id);
+                        card.style.borderColor = '#334155';
+                        card.style.boxShadow = 'none';
+                        if (focusBtn) focusBtn.classList.remove('active');
+                        if (isLiveActive) stopLiveSseStream(worker.id);
+                    } else {
+                        selectedUserIds.add(worker.id);
+                        card.style.borderColor = assignedColor;
+                        card.style.boxShadow = `0 0 6px ${assignedColor}40`;
+                        if (focusBtn) focusBtn.classList.add('active');
+                        if (isLiveActive) startLiveSseStream(worker.id);
+                    }
+                    fetchDriverRoute(true);
+                };
+
+                card.innerHTML = `
                         <div style="display: flex; flex-direction: column; gap: 2px;">
-                            <span style="color: white; font-weight: 500; font-size: 0.95rem;">${worker.name} <small style="color: #64748b;">(ID: ${worker.id})</small></span>
+                            <span style="color: white; font-weight: 500; font-size: 0.95rem;">${worker.name || 'Driver'} <small style="color: #64748b;">(ID: ${worker.id})</small></span>
                             <span style="color: #94a3b8; font-size: 0.75rem;">${displayPhone}</span>
                         </div>
                         <div style="display: flex; align-items: center; gap: 10px;">
@@ -472,214 +516,213 @@
                             <span style="height: 12px; width: 12px; background-color: ${dotColor}; border-radius: 50%; display: inline-block; ${glowEffect}"></span>
                         </div>
                     `;
-                    
-                    rosterContainer.appendChild(card);
 
-                    const focusBtn = card.querySelector(`#focus-btn-${worker.id}`);
-                    focusBtn.onclick = (event) => {
-                        event.stopPropagation();
-                        if (!selectedUserIds.has(worker.id)) return;
-                        
-                        const points = workerPaths.get(worker.id);
-                        if (points && points.length > 0) {
-                            map.setView(points[points.length - 1], 16);
-                        } else {
-                            alert(`No location history logs recorded yet.`);
-                        }
-                    };
-                });
-            } catch (err) {
-                rosterContainer.innerHTML = `<p style="color: #ef4444; font-size: 0.9rem;">API Error: ${err.message}</p>`;
-            }
-        }
+                rosterContainer.appendChild(card);
 
-        // --- Fetch and Render Selected Tracking Trails ---
-        async function fetchDriverRoute(shouldFitBounds = false) {
-            const startVal = document.getElementById('startTime').value;
-            const isLiveActive = document.getElementById('liveToggle').checked;
-            
-            if (isLiveActive) syncEndTimeToNow();
-            
-            const endVal = document.getElementById('endTime').value;
-            const statusText = document.getElementById('statusText');
-            const pointsCount = document.getElementById('pointsCount');
+                const focusBtn = card.querySelector(`#focus-btn-${worker.id}`);
+                focusBtn.onclick = (event) => {
+                    event.stopPropagation();
+                    if (!selectedUserIds.has(worker.id)) return;
 
-            if (selectedUserIds.size === 0) {
-                routesGroup.clearLayers();
-                markersGroup.clearLayers();
-                workerPaths.clear();
-                statusText.innerText = "Ready (Select workers to view routes)";
-                statusText.style.color = "#94a3b8";
-                pointsCount.innerText = "0";
-                return;
-            }
-
-            const startISO = new Date(startVal).toISOString();
-            const endISO = new Date(endVal).toISOString();
-            
-            let totalPointsAccumulated = 0;
-            const boundsToFit = [];
-
-            try {
-                const fetchPromises = Array.from(selectedUserIds).map(userId => 
-                    fetch(`http://localhost:8080/api/locations/history?userId=${userId}&start=${encodeURIComponent(startISO)}&end=${encodeURIComponent(endISO)}`, {
-                        headers: getRequestHeaders()
-                    })
-                    .then(res => res.json().then(logs => ({ userId, logs })))
-                );
-
-                const results = await Promise.all(fetchPromises);
-                routesGroup.clearLayers();
-                markersGroup.clearLayers();
-
-                results.forEach(result => {
-                    const { userId, logs } = result;
-                    if (!logs || logs.length === 0) {
-                        workerPaths.set(userId, []);
-                        return;
+                    const points = workerPaths.get(worker.id);
+                    if (points && points.length > 0) {
+                        map.setView(points[points.length - 1], 16);
+                    } else {
+                        alert(`No location history logs recorded yet.`);
                     }
-
-                    totalPointsAccumulated += logs.length;
-                    const meta = workerColorMapping[userId] || { name: `Driver ${userId}`, color: '#0ea5e9' };
-                    const coordinates = logs.map(log => [log.latitude, log.longitude]);
-                    workerPaths.set(userId, coordinates);
-                    
-                    coordinates.forEach(coord => boundsToFit.push(coord));
-
-                    L.polyline(coordinates, { color: meta.color, weight: 5, opacity: 0.85, dashArray: '5, 10' }).addTo(routesGroup);
-                    L.marker(coordinates[0]).addTo(markersGroup);
-                    L.marker(coordinates[coordinates.length - 1]).addTo(markersGroup);
-                });
-
-                pointsCount.innerText = totalPointsAccumulated;
-                if (shouldFitBounds && boundsToFit.length > 0) {
-                    map.fitBounds(L.latLngBounds(boundsToFit), { padding: [50, 50] });
-                }
-            } catch (err) {
-                statusText.innerText = "Error refreshing backend routes.";
-            }
-        }
-
-        // --- SSE Stream Lifecycle Handlers ---
-        function startLiveSseStream(userId) {
-            if (activeEventSources.has(userId)) return;
-            // Native EventSource does not support extra fetch configuration headers directly out of the box,
-            // ensure your /api/locations/stream endpoint has tracking query token params fallback or is open.
-            const token = localStorage.getItem('token');
-            const authParam = token ? `&token=${encodeURIComponent(token)}` : '';
-            const source = new EventSource(`http://localhost:8080/api/locations/stream?userId=${userId}${authParam}`);
-            
-            source.addEventListener('location-update', (event) => {
-                appendLivePointToMap(userId, JSON.parse(event.data));
+                };
             });
-            activeEventSources.set(userId, source);
+        } catch (err) {
+            rosterContainer.innerHTML = `<p style="color: #ef4444; font-size: 0.9rem;">API Error: ${err.message}</p>`;
+        }
+    }
+
+    // --- Fetch and Render Selected Tracking Trails ---
+    async function fetchDriverRoute(shouldFitBounds = false) {
+        const startVal = document.getElementById('startTime').value;
+        const isLiveActive = document.getElementById('liveToggle').checked;
+
+        if (isLiveActive) syncEndTimeToNow();
+
+        const endVal = document.getElementById('endTime').value;
+        const statusText = document.getElementById('statusText');
+        const pointsCount = document.getElementById('pointsCount');
+
+        if (selectedUserIds.size === 0) {
+            routesGroup.clearLayers();
+            markersGroup.clearLayers();
+            workerPaths.clear();
+            statusText.innerText = "Ready (Select workers to view routes)";
+            statusText.style.color = "#94a3b8";
+            pointsCount.innerText = "0";
+            return;
         }
 
-        function stopLiveSseStream(userId) {
-            const source = activeEventSources.get(userId);
-            if (source) {
-                source.close();
-                activeEventSources.delete(userId);
-                workerPaths.delete(userId);
-            }
-        }
+        const startISO = formatIsoDate(startVal);
+        const endISO = formatIsoDate(endVal);
 
-        function appendLivePointToMap(userId, log) {
-            const meta = workerColorMapping[userId] || { name: `Driver ${userId}`, color: '#0ea5e9' };
-            let currentPath = workerPaths.get(userId) || [];
-            currentPath.push([log.latitude, log.longitude]);
-            workerPaths.set(userId, currentPath);
+        let totalPointsAccumulated = 0;
+        const boundsToFit = [];
 
+        try {
+            const fetchPromises = Array.from(selectedUserIds).map(userId =>
+                fetch(`http://localhost:8080/api/manager/locations/history?userId=${userId}&start=${encodeURIComponent(startISO)}&end=${encodeURIComponent(endISO)}`, {
+                    headers: getRequestHeaders()
+                })
+                    .then(res => res.ok ? res.json() : [])
+                    .then(logs => ({ userId, logs }))
+            );
+
+            const results = await Promise.all(fetchPromises);
             routesGroup.clearLayers();
             markersGroup.clearLayers();
 
-            workerPaths.forEach((coords, id) => {
-                if (coords.length === 0) return;
-                const m = workerColorMapping[id] || { name: `Driver ${id}`, color: '#0ea5e9' };
-                L.polyline(coords, { color: m.color, weight: 5, opacity: 0.85, dashArray: '5, 10' }).addTo(routesGroup);
-                L.marker(coords[coords.length - 1]).addTo(markersGroup);
+            results.forEach(result => {
+                const { userId, logs } = result;
+                if (!logs || logs.length === 0) {
+                    workerPaths.set(userId, []);
+                    return;
+                }
+
+                totalPointsAccumulated += logs.length;
+                const meta = workerColorMapping[userId] || { name: `Driver ${userId}`, color: '#0ea5e9' };
+                const coordinates = logs.map(log => [log.latitude, log.longitude]);
+                workerPaths.set(userId, coordinates);
+
+                coordinates.forEach(coord => boundsToFit.push(coord));
+
+                L.polyline(coordinates, { color: meta.color, weight: 5, opacity: 0.85, dashArray: '5, 10' }).addTo(routesGroup);
+                L.marker(coordinates[0]).addTo(markersGroup);
+                L.marker(coordinates[coordinates.length - 1]).addTo(markersGroup);
             });
-        }
 
-        function syncEndTimeToNow() {
-            const now = new Date();
-            const offset = now.getTimezoneOffset() * 60000;
-            document.getElementById('endTime').value = new Date(now - offset).toISOString().slice(0, 16);
+            pointsCount.innerText = totalPointsAccumulated;
+            if (shouldFitBounds && boundsToFit.length > 0) {
+                map.fitBounds(L.latLngBounds(boundsToFit), { padding: [50, 50] });
+            }
+        } catch (err) {
+            statusText.innerText = "Error refreshing backend routes.";
         }
+    }
 
-        function handleLiveStreamToggle() {
-            const liveToggle = document.getElementById('liveToggle');
-            if (liveToggle.checked) {
-                fetchDriverRoute(true);
-                selectedUserIds.forEach(userId => startLiveSseStream(userId));
+    // --- SSE Stream Handlers ---
+    function startLiveSseStream(userId) {
+        if (activeEventSources.has(userId)) return;
+
+        const token = localStorage.getItem('token');
+        const authParam = token ? `&token=${encodeURIComponent(token)}` : '';
+        const source = new EventSource(`http://localhost:8080/api/locations/stream?userId=${userId}${authParam}`);
+
+        source.addEventListener('location-update', (event) => {
+            appendLivePointToMap(userId, JSON.parse(event.data));
+        });
+        activeEventSources.set(userId, source);
+    }
+
+    function stopLiveSseStream(userId) {
+        const source = activeEventSources.get(userId);
+        if (source) {
+            source.close();
+            activeEventSources.delete(userId);
+            workerPaths.delete(userId);
+        }
+    }
+
+    function appendLivePointToMap(userId, log) {
+        let currentPath = workerPaths.get(userId) || [];
+        currentPath.push([log.latitude, log.longitude]);
+        workerPaths.set(userId, currentPath);
+
+        routesGroup.clearLayers();
+        markersGroup.clearLayers();
+
+        workerPaths.forEach((coords, id) => {
+            if (coords.length === 0) return;
+            const m = workerColorMapping[id] || { name: `Driver ${id}`, color: '#0ea5e9' };
+            L.polyline(coords, { color: m.color, weight: 5, opacity: 0.85, dashArray: '5, 10' }).addTo(routesGroup);
+            L.marker(coords[coords.length - 1]).addTo(markersGroup);
+        });
+    }
+
+    function syncEndTimeToNow() {
+        const now = new Date();
+        const offset = now.getTimezoneOffset() * 60000;
+        document.getElementById('endTime').value = new Date(now - offset).toISOString().slice(0, 16);
+    }
+
+    function handleLiveStreamToggle() {
+        const liveToggle = document.getElementById('liveToggle');
+        if (liveToggle.checked) {
+            fetchDriverRoute(true);
+            selectedUserIds.forEach(userId => startLiveSseStream(userId));
+        } else {
+            activeEventSources.forEach(source => source.close());
+            activeEventSources.clear();
+            workerPaths.clear();
+            fetchDriverRoute(true);
+        }
+    }
+
+    // --- Update Password Handler ---
+    document.getElementById('updateCredsBtn').onclick = async () => {
+        const userId = document.getElementById('adminTargetUserId').value;
+        const newPassword = document.getElementById('adminNewPassword').value;
+        const feedback = document.getElementById('adminCredsFeedback');
+
+        try {
+            const response = await fetch(`http://localhost:8080/api/auth/update-password?userId=${userId}`, {
+                method: 'PUT',
+                headers: getRequestHeaders(),
+                body: JSON.stringify({ password: newPassword })
+            });
+
+            if (response.ok) {
+                feedback.innerText = "Credentials updated successfully!";
+                feedback.style.color = "#22c55e";
+                document.getElementById('adminTargetUserId').value = '';
+                document.getElementById('adminNewPassword').value = '';
             } else {
-                activeEventSources.forEach(source => source.close());
-                activeEventSources.clear();
-                workerPaths.clear();
-                fetchDriverRoute(true);
+                feedback.innerText = "Failed to update profile configurations.";
+                feedback.style.color = "#ef4444";
             }
+        } catch (err) {
+            feedback.innerText = "Unable to connect to service.";
         }
+        setTimeout(() => { feedback.innerText = ""; }, 4000);
+    };
 
-        // --- Core Handler: Update Driver Password Credentials ---
-        document.getElementById('updateCredsBtn').onclick = async () => {
-            const userId = document.getElementById('adminTargetUserId').value;
-            const newPassword = document.getElementById('adminNewPassword').value;
-            const feedback = document.getElementById('adminCredsFeedback');
+    // --- Register Worker Handler ---
+    document.getElementById('registerWorkerBtn').onclick = async () => {
+        const name = document.getElementById('regWorkerName').value;
+        const phone = document.getElementById('regWorkerPhone').value;
+        const feedback = document.getElementById('regWorkerFeedback');
 
-            try {
-                const response = await fetch(`http://localhost:8080/api/auth/update-password?userId=${userId}`, {
-                    method: 'PUT',
-                    headers: getRequestHeaders(),
-                    body: JSON.stringify({ password: newPassword })
-                });
+        try {
+            const response = await fetch('http://localhost:8080/api/manager/locations/register-worker', {
+                method: 'POST',
+                headers: getRequestHeaders(),
+                body: JSON.stringify({ name: name, phoneNumber: phone })
+            });
 
-                if (response.ok) {
-                    feedback.innerText = "Credentials updated successfully!";
-                    feedback.style.color = "#22c55e";
-                    document.getElementById('adminTargetUserId').value = '';
-                    document.getElementById('adminNewPassword').value = '';
-                } else {
-                    feedback.innerText = "Failed to update profile configurations.";
-                    feedback.style.color = "#ef4444";
-                }
-            } catch (err) {
-                feedback.innerText = "Unable to connect to service.";
+            if (response.ok) {
+                feedback.innerText = "Driver registered successfully!";
+                feedback.style.color = "#22c55e";
+                document.getElementById('regWorkerName').value = '';
+                document.getElementById('regWorkerPhone').value = '';
+                renderFleetRoster();
+            } else {
+                feedback.innerText = "Failed to store record.";
+                feedback.style.color = "#ef4444";
             }
-            setTimeout(() => { feedback.innerText = ""; }, 4000);
-        };
+        } catch (err) {
+            feedback.innerText = "Unable to connect to service.";
+        }
+        setTimeout(() => { feedback.innerText = ""; }, 4000);
+    };
 
-        // --- Core Handler: Create/Register New Workers ---
-        document.getElementById('registerWorkerBtn').onclick = async () => {
-            const name = document.getElementById('regWorkerName').value;
-            const phone = document.getElementById('regWorkerPhone').value;
-            const feedback = document.getElementById('regWorkerFeedback');
-
-            try {
-                const response = await fetch('http://localhost:8080/api/locations/register-worker', {
-                    method: 'POST',
-                    headers: getRequestHeaders(),
-                    body: JSON.stringify({ name: name, phoneNumber: phone })
-                });
-
-                if (response.ok) {
-                    feedback.innerText = "Driver registered successfully!";
-                    feedback.style.color = "#22c55e";
-                    document.getElementById('regWorkerName').value = '';
-                    document.getElementById('regWorkerPhone').value = '';
-                    renderFleetRoster();
-                } else {
-                    feedback.innerText = "Failed to store record.";
-                    feedback.style.color = "#ef4444";
-                }
-            } catch (err) {
-                feedback.innerText = "Unable to connect to service.";
-            }
-            setTimeout(() => { feedback.innerText = ""; }, 4000);
-        };
-
-        document.getElementById('startTime').addEventListener('change', () => fetchDriverRoute(true));
-        document.getElementById('endTime').addEventListener('change', () => fetchDriverRoute(true));
-        document.getElementById('liveToggle').addEventListener('change', handleLiveStreamToggle);
-    </script>
+    document.getElementById('startTime').addEventListener('change', () => fetchDriverRoute(true));
+    document.getElementById('endTime').addEventListener('change', () => fetchDriverRoute(true));
+    document.getElementById('liveToggle').addEventListener('change', handleLiveStreamToggle);
+</script>
 </body>
 </html>
