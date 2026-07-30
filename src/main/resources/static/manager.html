@@ -33,6 +33,11 @@
             font-size: 1.25rem;
             margin: 0;
         }
+        .nav-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
         .nav-links {
             display: flex;
             gap: 12px;
@@ -77,6 +82,7 @@
         }
         #sidebar {
             width: 320px;
+            box-sizing: border-box;
             background-color: #1e293b;
             color: #fff;
             padding: 20px;
@@ -85,7 +91,28 @@
             gap: 20px;
             box-shadow: 4px 0 10px rgba(0,0,0,0.1);
             z-index: 1000;
+            transition: margin-left 0.3s ease;
+            overflow-y: auto; /* Made scrollable */
         }
+        #sidebar.collapsed {
+            margin-left: -320px;
+        }
+
+        /* Custom scrollbar for sidebar */
+        #sidebar::-webkit-scrollbar,
+        #rosterContainer::-webkit-scrollbar {
+            width: 6px;
+        }
+        #sidebar::-webkit-scrollbar-track,
+        #rosterContainer::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        #sidebar::-webkit-scrollbar-thumb,
+        #rosterContainer::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 3px;
+        }
+
         #map {
             flex-grow: 1;
             height: 100%;
@@ -113,16 +140,7 @@
             font-size: 0.9rem;
             border-left: 4px solid #38bdf8;
         }
-        #rosterContainer::-webkit-scrollbar {
-            width: 6px;
-        }
-        #rosterContainer::-webkit-scrollbar-track {
-            background: #0f172a;
-        }
-        #rosterContainer::-webkit-scrollbar-thumb {
-            background: #334155;
-            border-radius: 3px;
-        }
+
         .focus-btn {
             background: #1e293b;
             border: 1px solid #334155;
@@ -142,6 +160,32 @@
         }
         .focus-btn.active:hover {
             background: #38bdf8;
+            color: #0f172a;
+        }
+
+        /* Map custom zoom buttons */
+        .custom-zoom-controls {
+            position: absolute;
+            bottom: 30px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            gap: 8px;
+        }
+        .custom-zoom-controls button {
+            background-color: #1e293b;
+            color: #38bdf8;
+            border: 1px solid #334155;
+            padding: 10px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1.2rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            transition: all 0.2s;
+        }
+        .custom-zoom-controls button:hover {
+            background-color: #38bdf8;
             color: #0f172a;
         }
 
@@ -231,7 +275,10 @@
 </div>
 
 <div id="navbar">
-    <h1>Fleet Control Center</h1>
+    <div class="nav-left">
+        <button class="nav-btn" onclick="toggleSidebar()" title="Toggle Sidebar" style="padding: 8px 12px; font-size: 1.1rem;">☰</button>
+        <h1>Fleet Control Center</h1>
+    </div>
     <div class="nav-links">
         <button class="nav-btn" onclick="showView('map-view')">Tracking Map</button>
         <button class="nav-btn" onclick="showView('creds-view')">Credential Manager</button>
@@ -274,6 +321,12 @@
     </div>
 
     <div id="map"></div>
+
+    <!-- Added custom < and > zoom controls -->
+    <div class="custom-zoom-controls">
+        <button onclick="map.zoomOut()" title="Zoom Out">&lt;</button>
+        <button onclick="map.zoomIn()" title="Zoom In">&gt;</button>
+    </div>
 
     <div id="creds-view" class="admin-view">
         <div class="view-content">
@@ -338,6 +391,41 @@
         const token = localStorage.getItem('token');
         if (token) {
             showDashboard();
+        }
+    });
+
+    // --- Sidebar Toggle Logic ---
+    function toggleSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        sidebar.classList.toggle('collapsed');
+
+        // Wait for CSS transition to finish before recalculating map size
+        setTimeout(() => {
+            if (map) map.invalidateSize();
+        }, 300);
+    }
+
+    // --- Login via Enter Key ---
+    function handleLoginEnter(e) {
+        if (e.key === 'Enter') {
+            document.getElementById('submitLoginBtn').click();
+        }
+    }
+    document.getElementById('loginUsername').addEventListener('keypress', handleLoginEnter);
+    document.getElementById('loginPassword').addEventListener('keypress', handleLoginEnter);
+
+    // --- Map Keyboard Zoom via < and > ---
+    document.addEventListener('keydown', (e) => {
+        if (!map) return;
+
+        // Don't trigger map zoom if typing inside an input field
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+        // Using both strict brackets and comma/period for broader layout compatibility
+        if (e.key === '<' || e.key === ',') {
+            map.zoomOut();
+        } else if (e.key === '>' || e.key === '.') {
+            map.zoomIn();
         }
     });
 
