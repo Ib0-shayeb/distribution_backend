@@ -298,6 +298,16 @@
                 <label>Full Name</label>
                 <input type="text" id="regWorkerName" placeholder="John Doe">
             </div>
+            <!-- Added Username Field -->
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" id="regWorkerUsername" placeholder="driver123">
+            </div>
+            <!-- Added Password Field -->
+            <div class="form-group">
+                <label>Initial Password</label>
+                <input type="password" id="regWorkerPassword" placeholder="••••••••">
+            </div>
             <div class="form-group">
                 <label>Phone Number</label>
                 <input type="text" id="regWorkerPhone" placeholder="+48 123 456 789">
@@ -694,6 +704,9 @@
     // --- Register Worker Handler ---
     document.getElementById('registerWorkerBtn').onclick = async () => {
         const name = document.getElementById('regWorkerName').value;
+        // Retrieved newly added fields
+        const username = document.getElementById('regWorkerUsername').value;
+        const password = document.getElementById('regWorkerPassword').value;
         const phone = document.getElementById('regWorkerPhone').value;
         const feedback = document.getElementById('regWorkerFeedback');
 
@@ -701,17 +714,30 @@
             const response = await fetch('/api/manager/locations/register-worker', {
                 method: 'POST',
                 headers: getRequestHeaders(),
-                body: JSON.stringify({ name: name, phoneNumber: phone })
+                // Passed newly added fields to backend body
+                body: JSON.stringify({
+                    name: name,
+                    username: username,
+                    password: password,
+                    phoneNumber: phone
+                })
             });
 
             if (response.ok) {
-                feedback.innerText = "Driver registered successfully!";
+                const textResult = await response.text();
+                feedback.innerText = textResult || "Driver registered successfully!";
                 feedback.style.color = "#22c55e";
+
+                // Cleared the fields after successful submission
                 document.getElementById('regWorkerName').value = '';
+                document.getElementById('regWorkerUsername').value = '';
+                document.getElementById('regWorkerPassword').value = '';
                 document.getElementById('regWorkerPhone').value = '';
+
                 renderFleetRoster();
             } else {
-                feedback.innerText = "Failed to store record.";
+                const errText = await response.text();
+                feedback.innerText = errText || "Failed to store record.";
                 feedback.style.color = "#ef4444";
             }
         } catch (err) {
