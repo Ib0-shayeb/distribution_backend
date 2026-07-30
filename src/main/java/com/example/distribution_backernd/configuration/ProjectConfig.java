@@ -65,6 +65,7 @@ public class ProjectConfig {
                         .requestMatchers("/api/driver/**").hasRole("DRIVER")
                         .requestMatchers("/api/manager/**").hasRole("MANAGER")
                         .requestMatchers("/manager.html").permitAll()
+                        .requestMatchers("/downloads/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(exceptions -> exceptions
