@@ -639,19 +639,7 @@
     }
 
     function appendLivePointToMap(userId, log) {
-        let currentPath = workerPaths.get(userId) || [];
-        currentPath.push([log.latitude, log.longitude]);
-        workerPaths.set(userId, currentPath);
-
-        routesGroup.clearLayers();
-        markersGroup.clearLayers();
-
-        workerPaths.forEach((coords, id) => {
-            if (coords.length === 0) return;
-            const m = workerColorMapping[id] || { name: `Driver ${id}`, color: '#0ea5e9' };
-            L.polyline(coords, { color: m.color, weight: 5, opacity: 0.85, dashArray: '5, 10' }).addTo(routesGroup);
-            L.marker(coords[coords.length - 1]).addTo(markersGroup);
-        });
+        fetchDriverRoute(false);
     }
 
     function syncEndTimeToNow() {
