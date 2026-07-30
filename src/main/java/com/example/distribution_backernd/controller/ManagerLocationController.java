@@ -1,7 +1,9 @@
 package com.example.distribution_backernd.controller;
 
+import com.example.distribution_backernd.model.Authority;
 import com.example.distribution_backernd.model.LocationLog;
 import com.example.distribution_backernd.model.User;
+import com.example.distribution_backernd.repository.AuthorityRepository;
 import com.example.distribution_backernd.repository.LocationLogRepository;
 import com.example.distribution_backernd.repository.UserRepository;
 import com.example.distribution_backernd.service.LocationStreamService;
@@ -9,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -24,6 +27,8 @@ public class ManagerLocationController {
     private final LocationLogRepository logRepo;
     private final UserRepository userRepo;
     private final LocationStreamService streamService;
+    private final PasswordEncoder passwordEncoder;
+    private final AuthorityRepository authorityRepo;
 
     @GetMapping("/hello")
     public String hello() {
@@ -57,16 +62,35 @@ public class ManagerLocationController {
     public ResponseEntity<?> registerWorker(@RequestBody Map<String, String> payload) {
         String name = payload.get("name");
         String phoneNumber = payload.get("phoneNumber");
+        String username = payload.get("username");
+        String rawPassword = payload.get("password");
 
         if (name == null || name.trim().isEmpty()) {
             return ResponseEntity.badRequest().body("Driver name is required.");
         }
+        if (username == null || username.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body("Username is required.");
+        }
+        if (rawPassword == null || rawPassword.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body("Password is required.");
+        }
+
+        if (userRepo.findByUsername(username.trim()).isPresent()) {
+            return ResponseEntity.badRequest().body("Username '" + username + "' is already taken.");
+        }
 
         User worker = new User();
-        worker.setName(name);
+        worker.setName(name.trim());
         worker.setPhoneNumber(phoneNumber);
+        worker.setUsername(username.trim());
+        worker.setPasswordHash(passwordEncoder.encode(rawPassword));
+        worker.setEnabled(true);
 
-        userRepo.save(worker);
-        return ResponseEntity.ok("Driver registered successfully with ID: " + worker.getId());
+        User savedWorker = userRepo.save(worker);
+
+        Authority driverAuth = new Authority(savedWorker.getUsername(), "ROLE_DRIVER");
+        authorityRepo.save(driverAuth);
+
+        return ResponseEntity.ok("Driver registered successfully with ID: " + savedWorker.getId());
     }
 }
