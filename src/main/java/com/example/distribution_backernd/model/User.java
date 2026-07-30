@@ -22,6 +22,9 @@ public class User {
     @Column(name = "phone_number")
     private String phoneNumber;
 
+    @Column(name = "enabled", nullable = false)
+    private boolean enabled = true;
+
     public Integer getId() { return id; }
     public void setId(Integer id) { this.id = id; }
 
@@ -36,4 +39,8 @@ public class User {
 
     public String getPhoneNumber() { return phoneNumber; }
     public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
+
+    public boolean isEnabled() { return enabled; }
+    public void setEnabled(boolean enabled) { this.enabled = enabled; }
+
 }
