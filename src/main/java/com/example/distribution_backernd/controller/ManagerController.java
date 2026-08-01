@@ -10,7 +10,7 @@ public class ManagerController {
     @Value("${GOOGLE_MAPS_KEY}")
     private String googleMapsKey;
 
-    @GetMapping("/admin")
+    @GetMapping("/manager")
     public String getAdminDashboard(Model model) {
         model.addAttribute("googleMapsKey", googleMapsKey);
 
