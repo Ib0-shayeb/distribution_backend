@@ -206,11 +206,15 @@
 </div>
 
 <!-- REPLACED LEAFLET WITH GOOGLE MAPS API -->
-<!-- Add your API Key to the URL below -->
-<script th:src="@{https://maps.googleapis.com/maps/api/js(key=${googleMapsKey}, loading='async')}" async defer></script>
+<!-- Using callback='initMap' for async loading -->
+<script th:src="@{https://maps.googleapis.com/maps/api/js(key=${googleMapsKey}, loading='async', callback='initMap')}" async defer></script>
 
 <script>
     let map = null;
+
+    // --- State variables to handle Google Maps loading race conditions ---
+    let mapApiLoaded = false;
+    let dashboardVisible = false;
 
     // Google Maps uses arrays of objects instead of LayerGroups
     let activePolylines = [];
@@ -222,6 +226,16 @@
 
     const activeEventSources = new Map();
     const workerPaths = new Map();
+
+    // --- NEW: Google Maps Callback Function ---
+    // Google calls this function automatically when the script finishes downloading
+    window.initMap = function() {
+        mapApiLoaded = true;
+        // If the user is already logged in and looking at the dashboard, draw the map now
+        if (dashboardVisible) {
+            initializeTrackingMap();
+        }
+    };
 
     window.addEventListener('DOMContentLoaded', () => {
         const token = localStorage.getItem('token');
@@ -235,7 +249,7 @@
         sidebar.classList.toggle('collapsed');
         // Google Maps auto-adjusts well, but we can trigger a resize event just in case
         setTimeout(() => {
-            if (map) google.maps.event.trigger(map, "resize");
+            if (map && typeof google !== 'undefined') google.maps.event.trigger(map, "resize");
         }, 300);
     }
 
@@ -264,7 +278,14 @@
         document.getElementById('navbar').style.display = 'flex';
         document.getElementById('main-container').style.display = 'flex';
 
-        initializeTrackingMap();
+        dashboardVisible = true;
+
+        // Only try to initialize the map if Google Maps is actually loaded
+        // If it isn't, window.initMap will handle it when it finishes
+        if (mapApiLoaded) {
+            initializeTrackingMap();
+        }
+
         renderFleetRoster();
     }
 
@@ -274,6 +295,8 @@
         activeEventSources.clear();
         selectedUserIds.clear();
         workerPaths.clear();
+
+        dashboardVisible = false;
 
         document.getElementById('main-container').style.display = 'none';
         document.getElementById('navbar').style.display = 'none';
@@ -331,21 +354,27 @@
     function showView(viewId) {
         document.querySelectorAll('.admin-view').forEach(view => view.style.display = 'none');
         if (viewId === 'map-view') {
-            if (map) setTimeout(() => google.maps.event.trigger(map, "resize"), 50);
+            if (map && typeof google !== 'undefined') setTimeout(() => google.maps.event.trigger(map, "resize"), 50);
         } else {
             document.getElementById(viewId).style.display = 'block';
         }
     }
 
-    // --- REWRITTEN: Google Maps Initialization ---
     function initializeTrackingMap() {
         if (map !== null) return;
+
+        // Final safety check to ensure Google exists
+        if (typeof google === 'undefined' || !google.maps) {
+            console.error("Map Init Failed: google is not defined yet.");
+            return;
+        }
+
         try {
             map = new google.maps.Map(document.getElementById('map'), {
                 center: { lat: 31.9522, lng: 35.915 },
                 zoom: 13,
                 mapTypeId: 'roadmap',
-                disableDefaultUI: false // Optional: set to true to hide default Google controls
+                disableDefaultUI: false
             });
         } catch (mapError) {
             console.error("Map Init Failed: ", mapError);
@@ -438,7 +467,7 @@
                     if (!selectedUserIds.has(worker.id)) return;
 
                     const points = workerPaths.get(worker.id);
-                    if (points && points.length > 0) {
+                    if (points && points.length > 0 && map) {
                         map.setCenter(points[points.length - 1]);
                         map.setZoom(16);
                     } else {
@@ -451,7 +480,6 @@
         }
     }
 
-    // --- REWRITTEN: Drawing Routes using Google Maps API ---
     async function fetchDriverRoute(shouldFitBounds = false) {
         const startVal = document.getElementById('startTime').value;
         const isLiveActive = document.getElementById('liveToggle').checked;
@@ -478,7 +506,12 @@
         const endISO = formatIsoDate(endVal);
 
         let totalPointsAccumulated = 0;
-        const boundsToFit = new google.maps.LatLngBounds();
+
+        // Ensure google maps API is loaded before attempting to use bounds
+        let boundsToFit = null;
+        if (typeof google !== 'undefined' && google.maps) {
+            boundsToFit = new google.maps.LatLngBounds();
+        }
         let boundsHavePoints = false;
 
         try {
@@ -502,36 +535,39 @@
                 totalPointsAccumulated += logs.length;
                 const meta = workerColorMapping[userId] || { name: `Driver ${userId}`, color: '#0ea5e9' };
 
-                // Google maps requires {lat, lng} objects, not [lat, lng] arrays
                 const coordinates = logs.map(log => ({ lat: log.latitude, lng: log.longitude }));
                 workerPaths.set(userId, coordinates);
 
-                // Create Polyline
-                const polyline = new google.maps.Polyline({
-                    path: coordinates,
-                    geodesic: true,
-                    strokeColor: meta.color,
-                    strokeOpacity: 0.85,
-                    strokeWeight: 5
-                });
-                polyline.setMap(map);
-                activePolylines.push(polyline);
+                if (map && typeof google !== 'undefined') {
+                    // Create Polyline
+                    const polyline = new google.maps.Polyline({
+                        path: coordinates,
+                        geodesic: true,
+                        strokeColor: meta.color,
+                        strokeOpacity: 0.85,
+                        strokeWeight: 5
+                    });
+                    polyline.setMap(map);
+                    activePolylines.push(polyline);
 
-                // Add start and end markers
-                const startMarker = new google.maps.Marker({ position: coordinates[0], map: map });
-                const endMarker = new google.maps.Marker({ position: coordinates[coordinates.length - 1], map: map });
-                activeMarkers.push(startMarker, endMarker);
+                    // Add start and end markers
+                    const startMarker = new google.maps.Marker({ position: coordinates[0], map: map });
+                    const endMarker = new google.maps.Marker({ position: coordinates[coordinates.length - 1], map: map });
+                    activeMarkers.push(startMarker, endMarker);
 
-                // Extend map bounds
-                coordinates.forEach(coord => {
-                    boundsToFit.extend(coord);
-                    boundsHavePoints = true;
-                });
+                    // Extend map bounds
+                    if (boundsToFit) {
+                        coordinates.forEach(coord => {
+                            boundsToFit.extend(coord);
+                            boundsHavePoints = true;
+                        });
+                    }
+                }
             });
 
             pointsCount.innerText = totalPointsAccumulated;
 
-            if (shouldFitBounds && boundsHavePoints) {
+            if (shouldFitBounds && boundsHavePoints && map) {
                 map.fitBounds(boundsToFit);
             }
         } catch (err) {
