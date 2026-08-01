@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -207,8 +207,7 @@
 
 <!-- REPLACED LEAFLET WITH GOOGLE MAPS API -->
 <!-- Add your API Key to the URL below -->
-<!-- Thymeleaf will safely inject the variable here before sending it to the browser -->
-<script th:src="@{https://maps.googleapis.com/maps/api/js(key=${googleMapsKey})}"></script>
+<script src="https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_KEY}"></script>
 
 <script>
     let map = null;
