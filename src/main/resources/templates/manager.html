@@ -207,7 +207,7 @@
 
 <!-- REPLACED LEAFLET WITH GOOGLE MAPS API -->
 <!-- Add your API Key to the URL below -->
-<script src="https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_KEY}"></script>
+<script th:src="@{https://maps.googleapis.com/maps/api/js(key=${googleMapsKey}, loading='async')}" async defer></script>
 
 <script>
     let map = null;
