@@ -11,8 +11,8 @@ public class LocationLog {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Column(name = "user_id")
-    private Integer userId;
+    @Column(name = "trip_id")
+    private Integer tripId;
 
     private Double latitude;
     private Double longitude;
@@ -23,8 +23,8 @@ public class LocationLog {
     public Integer getId() { return id; }
     public void setId(Integer id) { this.id = id; }
 
-    public Integer getUserId() { return userId; }
-    public void setUserId(Integer userId) { this.userId = userId; }
+    public Integer getTripId() { return tripId; }
+    public void setTripId(Integer userId) { this.tripId = userId; }
 
     public Double getLatitude() { return latitude; }
     public void setLatitude(Double latitude) { this.latitude = latitude; }
