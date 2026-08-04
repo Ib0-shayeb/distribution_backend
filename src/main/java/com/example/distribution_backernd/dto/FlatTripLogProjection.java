@@ -1,4 +1,8 @@
 package com.example.distribution_backernd.dto;
 
-public class FlatTripLogProjection {
+public interface FlatTripLogProjection {
+    Integer getUserId();
+    Integer getTripId();
+    Double getLatitude();
+    Double getLongitude();
 }

@@ -1,4 +1,8 @@
 package com.example.distribution_backernd.dto;
 
-public class DriverTripHistory {
-}
+import java.util.List;
+
+public record DriverTripHistory(
+        Integer userId,
+        List<TripHistory> trips
+) {}
