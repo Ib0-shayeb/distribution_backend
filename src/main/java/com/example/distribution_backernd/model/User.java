@@ -11,10 +11,10 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
+    @JsonIgnore
     private String username;
 
     @JsonIgnore
-    @Column(name = "password")
     private String password;
 
     private String name;
@@ -22,6 +22,7 @@ public class User {
     @Column(name = "phone_number")
     private String phoneNumber;
 
+    @JsonIgnore
     @Column(name = "enabled", nullable = false)
     private boolean enabled = true;
 
