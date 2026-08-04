@@ -6,7 +6,6 @@
     <title>Fleet Distribution Tracker - Admin</title>
 
     <style>
-        /* KEEP ALL YOUR EXISTING CSS EXACTLY AS IT WAS - NO CHANGES NEEDED HERE */
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0; padding: 0; display: flex; flex-direction: column;
@@ -157,7 +156,6 @@
 
     <div id="map"></div>
 
-    <!-- Updated custom zoom controls for Google Maps API -->
     <div class="custom-zoom-controls">
         <button onclick="if(map) map.setZoom(map.getZoom() - 1)" title="Zoom Out">&lt;</button>
         <button onclick="if(map) map.setZoom(map.getZoom() + 1)" title="Zoom In">&gt;</button>
@@ -205,18 +203,14 @@
 
 </div>
 
-<!-- REPLACED LEAFLET WITH GOOGLE MAPS API -->
-<!-- Using callback='initMap' for async loading -->
 <script th:src="@{https://maps.googleapis.com/maps/api/js(key=${googleMapsKey}, loading='async', callback='initMap')}" async defer></script>
 
 <script>
     let map = null;
 
-    // --- State variables to handle Google Maps loading race conditions ---
     let mapApiLoaded = false;
     let dashboardVisible = false;
 
-    // Google Maps uses arrays of objects instead of LayerGroups
     let activePolylines = [];
     let activeMarkers = [];
 
@@ -227,11 +221,8 @@
     const activeEventSources = new Map();
     const workerPaths = new Map();
 
-    // --- NEW: Google Maps Callback Function ---
-    // Google calls this function automatically when the script finishes downloading
     window.initMap = function() {
         mapApiLoaded = true;
-        // If the user is already logged in and looking at the dashboard, draw the map now
         if (dashboardVisible) {
             initializeTrackingMap();
         }
@@ -247,7 +238,6 @@
     function toggleSidebar() {
         const sidebar = document.getElementById('sidebar');
         sidebar.classList.toggle('collapsed');
-        // Google Maps auto-adjusts well, but we can trigger a resize event just in case
         setTimeout(() => {
             if (map && typeof google !== 'undefined') google.maps.event.trigger(map, "resize");
         }, 300);
@@ -261,7 +251,6 @@
     document.getElementById('loginUsername').addEventListener('keypress', handleLoginEnter);
     document.getElementById('loginPassword').addEventListener('keypress', handleLoginEnter);
 
-    // Updated Map Keyboard Zoom
     document.addEventListener('keydown', (e) => {
         if (!map) return;
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
@@ -280,8 +269,6 @@
 
         dashboardVisible = true;
 
-        // Only try to initialize the map if Google Maps is actually loaded
-        // If it isn't, window.initMap will handle it when it finishes
         if (mapApiLoaded) {
             initializeTrackingMap();
         }
@@ -363,7 +350,6 @@
     function initializeTrackingMap() {
         if (map !== null) return;
 
-        // Final safety check to ensure Google exists
         if (typeof google === 'undefined' || !google.maps) {
             console.error("Map Init Failed: google is not defined yet.");
             return;
@@ -460,7 +446,6 @@
 
                 rosterContainer.appendChild(card);
 
-                // Updated map recenter for Google Maps API
                 const focusBtn = card.querySelector(`#focus-btn-${worker.id}`);
                 focusBtn.onclick = (event) => {
                     event.stopPropagation();
@@ -490,7 +475,7 @@
         const statusText = document.getElementById('statusText');
         const pointsCount = document.getElementById('pointsCount');
 
-        // Clear existing Google Maps layers
+        // Clear map layers
         activePolylines.forEach(p => p.setMap(null)); activePolylines = [];
         activeMarkers.forEach(m => m.setMap(null)); activeMarkers = [];
 
@@ -507,71 +492,95 @@
 
         let totalPointsAccumulated = 0;
 
-        // Ensure google maps API is loaded before attempting to use bounds
         let boundsToFit = null;
         if (typeof google !== 'undefined' && google.maps) {
             boundsToFit = new google.maps.LatLngBounds();
         }
         let boundsHavePoints = false;
 
+        // Comma-separated list for batch query: ?userIds=1,2,3
+        const userIdsParam = Array.from(selectedUserIds).join(',');
+
         try {
-            const fetchPromises = Array.from(selectedUserIds).map(userId =>
-                fetch(`/api/manager/locations/history?userId=${userId}&start=${encodeURIComponent(startISO)}&end=${encodeURIComponent(endISO)}`, {
-                    headers: getRequestHeaders()
-                })
-                    .then(res => res.ok ? res.json() : [])
-                    .then(logs => ({ userId, logs }))
-            );
+            // Single HTTP Batch Request for all selected drivers
+            const response = await fetch(`/api/manager/locations/history?userIds=${userIdsParam}&start=${encodeURIComponent(startISO)}&end=${encodeURIComponent(endISO)}`, {
+                headers: getRequestHeaders()
+            });
 
-            const results = await Promise.all(fetchPromises);
+            if (!response.ok) {
+                statusText.innerText = "Error loading driver routes.";
+                return;
+            }
 
-            results.forEach(result => {
-                const { userId, logs } = result;
-                if (!logs || logs.length === 0) {
+            const driverHistories = await response.json(); // List<DriverTripHistoryDTO>
+
+            driverHistories.forEach(driverData => {
+                const { userId, trips } = driverData;
+                if (!trips || trips.length === 0) {
                     workerPaths.set(userId, []);
                     return;
                 }
 
-                totalPointsAccumulated += logs.length;
                 const meta = workerColorMapping[userId] || { name: `Driver ${userId}`, color: '#0ea5e9' };
+                const driverAllCoords = [];
 
-                const coordinates = logs.map(log => ({ lat: log.latitude, lng: log.longitude }));
-                workerPaths.set(userId, coordinates);
+                trips.forEach(trip => {
+                    if (!trip.logs || trip.logs.length === 0) return;
 
-                if (map && typeof google !== 'undefined') {
-                    // Create Polyline
-                    const polyline = new google.maps.Polyline({
-                        path: coordinates,
-                        geodesic: true,
-                        strokeColor: meta.color,
-                        strokeOpacity: 0.85,
-                        strokeWeight: 5
-                    });
-                    polyline.setMap(map);
-                    activePolylines.push(polyline);
+                    totalPointsAccumulated += trip.logs.length;
 
-                    // Add start and end markers
-                    const startMarker = new google.maps.Marker({ position: coordinates[0], map: map });
-                    const endMarker = new google.maps.Marker({ position: coordinates[coordinates.length - 1], map: map });
-                    activeMarkers.push(startMarker, endMarker);
+                    const tripCoordinates = trip.logs.map(log => ({
+                        lat: log.latitude,
+                        lng: log.longitude
+                    }));
 
-                    // Extend map bounds
-                    if (boundsToFit) {
-                        coordinates.forEach(coord => {
-                            boundsToFit.extend(coord);
-                            boundsHavePoints = true;
+                    driverAllCoords.push(...tripCoordinates);
+
+                    if (map && typeof google !== 'undefined') {
+                        const polyline = new google.maps.Polyline({
+                            path: tripCoordinates,
+                            geodesic: true,
+                            strokeColor: meta.color,
+                            strokeOpacity: 0.85,
+                            strokeWeight: 5
                         });
+                        polyline.setMap(map);
+                        activePolylines.push(polyline);
+
+                        const startMarker = new google.maps.Marker({
+                            position: tripCoordinates[0],
+                            map: map,
+                            title: `Trip #${trip.tripId} Start`
+                        });
+                        const endMarker = new google.maps.Marker({
+                            position: tripCoordinates[tripCoordinates.length - 1],
+                            map: map,
+                            title: `Trip #${trip.tripId} End`
+                        });
+                        activeMarkers.push(startMarker, endMarker);
+
+                        if (boundsToFit) {
+                            tripCoordinates.forEach(coord => {
+                                boundsToFit.extend(coord);
+                                boundsHavePoints = true;
+                            });
+                        }
                     }
-                }
+                });
+
+                workerPaths.set(userId, driverAllCoords);
             });
 
             pointsCount.innerText = totalPointsAccumulated;
+            statusText.innerText = "Routes Loaded";
+            statusText.style.color = "#22c55e";
 
             if (shouldFitBounds && boundsHavePoints && map) {
                 map.fitBounds(boundsToFit);
             }
         } catch (err) {
             statusText.innerText = "Error refreshing backend routes.";
+            statusText.style.color = "#ef4444";
         }
     }
 
@@ -581,9 +590,10 @@
         const authParam = token ? `&token=${encodeURIComponent(token)}` : '';
         const source = new EventSource(`/api/locations/stream?userId=${userId}${authParam}`);
 
-        source.addEventListener('location-update', (event) => {
-            appendLivePointToMap(userId, JSON.parse(event.data));
+        source.addEventListener('location-update', () => {
+            appendLivePointToMap(userId);
         });
+
         activeEventSources.set(userId, source);
     }
 
@@ -596,7 +606,7 @@
         }
     }
 
-    function appendLivePointToMap(userId, log) {
+    function appendLivePointToMap(userId) {
         fetchDriverRoute(false);
     }
 
