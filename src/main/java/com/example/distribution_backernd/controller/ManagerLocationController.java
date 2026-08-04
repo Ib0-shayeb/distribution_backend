@@ -1,11 +1,14 @@
 package com.example.distribution_backernd.controller;
 
+import com.example.distribution_backernd.dto.DriverTripHistory;
+import com.example.distribution_backernd.dto.TripHistory;
 import com.example.distribution_backernd.model.Authority;
 import com.example.distribution_backernd.model.LocationLog;
 import com.example.distribution_backernd.model.User;
 import com.example.distribution_backernd.repository.AuthorityRepository;
 import com.example.distribution_backernd.repository.LocationLogRepository;
 import com.example.distribution_backernd.repository.UserRepository;
+import com.example.distribution_backernd.service.LocationLogOrganisation;
 import com.example.distribution_backernd.service.LocationStreamService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +27,7 @@ import java.util.Map;
 @CrossOrigin(origins = "*")
 @RequiredArgsConstructor
 public class ManagerLocationController {
+    private final LocationLogOrganisation logOrg;
     private final LocationLogRepository logRepo;
     private final UserRepository userRepo;
     private final LocationStreamService streamService;
@@ -36,11 +40,13 @@ public class ManagerLocationController {
     }
 
     @GetMapping("/history")
-    public List<LocationLog> getHistory(
-            @RequestParam Integer userId,
+    public ResponseEntity<List<DriverTripHistory>> getHistory(
+            @RequestParam List<Integer> userIds,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) ZonedDateTime start,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) ZonedDateTime end) {
-        return logRepo.findHistoryRange(userId, start, end);
+
+        List<DriverTripHistory> history = logOrg.getBatchDriverTripHistory(userIds, start, end);
+        return ResponseEntity.ok(history);
     }
 
     @GetMapping("/active")
