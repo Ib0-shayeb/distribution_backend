@@ -599,7 +599,7 @@
         if (activeEventSources.has(userId)) return;
         const token = localStorage.getItem('token');
         const authParam = token ? `&token=${encodeURIComponent(token)}` : '';
-        const source = new EventSource(`/api/locations/stream?userId=${userId}${authParam}`);
+        const source = new EventSource(`/api/manager/locations/stream?userId=${userId}${authParam}`);
 
         source.addEventListener('location-update', () => {
             appendLivePointToMap(userId);
