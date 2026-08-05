@@ -115,12 +115,11 @@ public class DriverLocationController {
         User driver = userRepo.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Driver not found with username: " + username));
 
-        ZonedDateTime now = ZonedDateTime.now();
 
-        if (logs.getFirst().getTripId() == null) {
+        Integer tripId = logs.getFirst().getTripId();
+        if (tripId == null) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("tripId is required");
         }
-        Integer tripId = logs.getFirst().getTripId();
         Trip trip = tripRepo.findById(tripId)
                 .orElseThrow(() -> new RuntimeException("Trip not found with id: " + tripId));
 
@@ -133,7 +132,6 @@ public class DriverLocationController {
         }
 
         for (LocationLog log : logs) {
-
             if (log.getTripId() == null || !log.getTripId().equals(tripId)) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Varying or missing trip Ids");
             }
