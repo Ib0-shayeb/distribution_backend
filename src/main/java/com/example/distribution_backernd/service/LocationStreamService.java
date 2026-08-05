@@ -4,6 +4,7 @@ import com.example.distribution_backernd.model.LocationLog;
 import com.example.distribution_backernd.model.Trip;
 import com.example.distribution_backernd.repository.TripRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -20,14 +21,39 @@ public class LocationStreamService {
     private final Map<Integer, List<SseEmitter>> activeStreams = new ConcurrentHashMap<>();
 
     public SseEmitter createStream(Integer userId) {
-        SseEmitter emitter = new SseEmitter(1800000L);
+        // set timeout to infinite and because render handles killing idle connections
+        SseEmitter emitter = new SseEmitter(-1L);
         activeStreams.computeIfAbsent(userId, k -> new CopyOnWriteArrayList<>()).add(emitter);
 
         emitter.onCompletion(() -> removeEmitter(userId, emitter));
         emitter.onTimeout(emitter::complete);
         emitter.onError(emitter::completeWithError);
 
+        // Send initial connection event so the browser knows it worked
+        try {
+            emitter.send(SseEmitter.event().name("init").data("connected"));
+        } catch (IOException e) {
+            removeEmitter(userId, emitter);
+        }
+
         return emitter;
+    }
+
+    @Scheduled(fixedRate = 60000)
+    public void sendHeartbeat() {
+        for (Map.Entry<Integer, List<SseEmitter>> entry : activeStreams.entrySet()) {
+            Integer userId = entry.getKey();
+            List<SseEmitter> emitters = entry.getValue();
+
+            for (SseEmitter emitter : emitters) {
+                try {
+                    // this will make the frontend request the ../history endpoint and refresh the connection
+                    emitter.send(SseEmitter.event().comment("ping"));
+                } catch (IOException e) {
+                    removeEmitter(userId, emitter);
+                }
+            }
+        }
     }
 
     public void broadcastLocation(LocationLog log, Integer userId) {
