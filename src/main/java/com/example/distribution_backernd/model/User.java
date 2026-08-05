@@ -11,6 +11,10 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
+    @Column(name = "fleet_id")
+    @JsonIgnore
+    private Integer fleetId;
+
     @JsonIgnore
     private String username;
 
@@ -28,6 +32,9 @@ public class User {
 
     public Integer getId() { return id; }
     public void setId(Integer id) { this.id = id; }
+
+    public Integer getFleetId() { return fleetId; }
+    public void setFleetId(Integer fleetId) { this.fleetId = fleetId; }
 
     public String getUsername() { return username; }
     public void setUsername(String username) { this.username = username; }
