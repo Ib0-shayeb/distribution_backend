@@ -10,6 +10,7 @@ import com.example.distribution_backernd.repository.LocationLogRepository;
 import com.example.distribution_backernd.repository.UserRepository;
 import com.example.distribution_backernd.service.LocationLogOrganisation;
 import com.example.distribution_backernd.service.LocationStreamService;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -60,7 +61,10 @@ public class ManagerLocationController {
     }
 
     @GetMapping(value = "/stream", produces = "text/event-stream")
-    public SseEmitter streamDriverLocation(@RequestParam Integer userId) {
+    public SseEmitter streamDriverLocation(@RequestParam Integer userId, HttpServletResponse response) {
+        response.setHeader("X-Accel-Buffering", "no");
+        response.setHeader("Cache-Control", "no-cache");
+        response.setHeader("Connection", "keep-alive");
         return streamService.createStream(userId);
     }
 
