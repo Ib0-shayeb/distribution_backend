@@ -466,20 +466,20 @@
     }
 
     async function fetchDriverRoute(shouldFitBounds = false) {
-        const startVal = document.getElementById('startTime').value;
         const isLiveActive = document.getElementById('liveToggle').checked;
 
-        if (isLiveActive) syncEndTimeToNow();
+        if (isLiveActive) {
+            syncEndTimeToNow();
+        }
 
+        const startVal = document.getElementById('startTime').value;
         const endVal = document.getElementById('endTime').value;
         const statusText = document.getElementById('statusText');
         const pointsCount = document.getElementById('pointsCount');
 
-        // Clear map layers
-        activePolylines.forEach(p => p.setMap(null)); activePolylines = [];
-        activeMarkers.forEach(m => m.setMap(null)); activeMarkers = [];
-
         if (selectedUserIds.size === 0) {
+            activePolylines.forEach(p => p.setMap(null)); activePolylines = [];
+            activeMarkers.forEach(m => m.setMap(null)); activeMarkers = [];
             workerPaths.clear();
             statusText.innerText = "Ready (Select workers to view routes)";
             statusText.style.color = "#94a3b8";
@@ -488,7 +488,14 @@
         }
 
         const startISO = formatIsoDate(startVal);
-        const endISO = formatIsoDate(endVal);
+
+        // When live mode is active, buffer the end ISO string into the future to ensure newly ingested points aren't excluded
+        let endISO = formatIsoDate(endVal);
+        if (isLiveActive) {
+            const futureDate = new Date();
+            futureDate.setMinutes(futureDate.getMinutes() + 60);
+            endISO = futureDate.toISOString();
+        }
 
         let totalPointsAccumulated = 0;
 
@@ -498,13 +505,13 @@
         }
         let boundsHavePoints = false;
 
-        // Comma-separated list for batch query: ?userIds=1,2,3
         const userIdsParam = Array.from(selectedUserIds).join(',');
 
         try {
-            // Single HTTP Batch Request for all selected drivers
-            const response = await fetch(`/api/manager/locations/history?userIds=${userIdsParam}&start=${encodeURIComponent(startISO)}&end=${encodeURIComponent(endISO)}`, {
-                headers: getRequestHeaders()
+            // Append timestamp cache buster parameter to guarantee browser doesn't return cached GET response
+            const response = await fetch(`/api/manager/locations/history?userIds=${userIdsParam}&start=${encodeURIComponent(startISO)}&end=${encodeURIComponent(endISO)}&_t=${Date.now()}`, {
+                headers: getRequestHeaders(),
+                cache: 'no-cache'
             });
 
             if (!response.ok) {
@@ -512,7 +519,11 @@
                 return;
             }
 
-            const driverHistories = await response.json(); // List<DriverTripHistoryDTO>
+            const driverHistories = await response.json();
+
+            // Clear previous polyline layers and markers before redrawing updated route
+            activePolylines.forEach(p => p.setMap(null)); activePolylines = [];
+            activeMarkers.forEach(m => m.setMap(null)); activeMarkers = [];
 
             driverHistories.forEach(driverData => {
                 const { userId, trips } = driverData;
@@ -572,7 +583,7 @@
             });
 
             pointsCount.innerText = totalPointsAccumulated;
-            statusText.innerText = "Routes Loaded";
+            statusText.innerText = isLiveActive ? "Live Streaming Active" : "Routes Loaded";
             statusText.style.color = "#22c55e";
 
             if (shouldFitBounds && boundsHavePoints && map) {
