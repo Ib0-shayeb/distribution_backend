@@ -26,8 +26,8 @@ public class LocationStreamService {
         activeStreams.computeIfAbsent(userId, k -> new CopyOnWriteArrayList<>()).add(emitter);
 
         emitter.onCompletion(() -> removeEmitter(userId, emitter));
-        emitter.onTimeout(emitter::complete);
-        emitter.onError(emitter::completeWithError);
+        emitter.onTimeout(() -> removeEmitter(userId, emitter));
+        emitter.onError((e) -> removeEmitter(userId, emitter));
 
         // Send initial connection event so the browser knows it worked
         try {
