@@ -2,6 +2,8 @@ package com.example.distribution_backernd.controller;
 
 import com.example.distribution_backernd.dto.AuthenticationResponse;
 import com.example.distribution_backernd.dto.LoginRequest;
+import com.example.distribution_backernd.model.User;
+import com.example.distribution_backernd.repository.UserRepository;
 import com.example.distribution_backernd.security.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +22,7 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final JwtUtil jwtUtil;
+    private final UserRepository userRepo;
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
@@ -31,7 +34,10 @@ public class AuthController {
                     )
             );
 
-            String jwt = jwtUtil.generateToken(authentication.getName());
+            User user = userRepo.findByUsername(authentication.getName())
+                    .orElseThrow(() -> new RuntimeException("User not found with username: " + authentication.getName()));
+
+            String jwt = jwtUtil.generateToken(user.getUsername(), user.getId(), user.getFleetId());
             return ResponseEntity.ok(new AuthenticationResponse(jwt));
 
         } catch (BadCredentialsException e) {
