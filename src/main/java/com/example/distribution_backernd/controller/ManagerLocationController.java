@@ -8,6 +8,7 @@ import com.example.distribution_backernd.model.User;
 import com.example.distribution_backernd.repository.AuthorityRepository;
 import com.example.distribution_backernd.repository.LocationLogRepository;
 import com.example.distribution_backernd.repository.UserRepository;
+import com.example.distribution_backernd.security.JwtUtil;
 import com.example.distribution_backernd.service.LocationLogOrganisation;
 import com.example.distribution_backernd.service.LocationStreamService;
 import jakarta.servlet.http.HttpServletResponse;
@@ -34,6 +35,7 @@ public class ManagerLocationController {
     private final LocationStreamService streamService;
     private final PasswordEncoder passwordEncoder;
     private final AuthorityRepository authorityRepo;
+    private final JwtUtil jwtUtil;
 
     @GetMapping("/hello")
     public String hello() {
@@ -42,38 +44,62 @@ public class ManagerLocationController {
 
     @GetMapping("/history")
     public ResponseEntity<List<DriverTripHistory>> getHistory(
+            @RequestHeader("Authorization") String authHeader,
             @RequestParam List<Integer> userIds,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) ZonedDateTime start,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) ZonedDateTime end) {
 
-        List<DriverTripHistory> history = logOrg.getBatchDriverTripHistory(userIds, start, end);
+        String jwt = authHeader.substring(7);
+        Integer fleetId = jwtUtil.extractFleetId(jwt);
+
+        List<DriverTripHistory> history = logOrg.getBatchDriverTripHistory(fleetId, userIds, start, end);
         return ResponseEntity.ok(history);
     }
 
     @GetMapping("/active")
-    public List<Integer> getActiveDrivers() {
-        return logRepo.findActiveUserIds();
+    public List<Integer> getActiveDrivers(
+            @RequestHeader("Authorization") String authHeader) {
+        String jwt = authHeader.substring(7);
+        Integer fleetId = jwtUtil.extractFleetId(jwt);
+
+        return logRepo.findActiveUserIds(fleetId);
     }
 
     @GetMapping("/all-workers")
-    public List<User> getAllWorkers() {
-        return userRepo.findAll();
+    public List<User> getAllWorkers(
+            @RequestHeader("Authorization") String authHeader) {
+        String jwt = authHeader.substring(7);
+        Integer fleetId = jwtUtil.extractFleetId(jwt);
+
+        return userRepo.findByFleetId(fleetId);
     }
 
     @GetMapping(value = "/stream", produces = "text/event-stream")
-    public SseEmitter streamDriverLocation(@RequestParam Integer userId, HttpServletResponse response) {
+    public SseEmitter streamDriverLocation(
+            @RequestHeader("Authorization") String authHeader,
+            @RequestParam Integer userId,
+            HttpServletResponse response) {
         response.setHeader("X-Accel-Buffering", "no");
         response.setHeader("Cache-Control", "no-cache");
         response.setHeader("Connection", "keep-alive");
-        return streamService.createStream(userId);
+
+        String jwt = authHeader.substring(7);
+        Integer fleetId = jwtUtil.extractFleetId(jwt);
+
+        return streamService.createStream(fleetId, userId);
     }
 
     @PostMapping("/register-worker")
-    public ResponseEntity<?> registerWorker(@RequestBody Map<String, String> payload) {
+    public ResponseEntity<?> registerWorker(
+            @RequestHeader("Authorization") String authHeader,
+            @RequestBody Map<String, String> payload) {
         String name = payload.get("name");
         String phoneNumber = payload.get("phoneNumber");
         String username = payload.get("username");
         String rawPassword = payload.get("password");
+
+        String jwt = authHeader.substring(7);
+        Integer fleetId = jwtUtil.extractFleetId(jwt);
 
         if (name == null || name.trim().isEmpty()) {
             return ResponseEntity.badRequest().body("Driver name is required.");
@@ -91,6 +117,7 @@ public class ManagerLocationController {
 
         User worker = new User();
         worker.setName(name.trim());
+        worker.setFleetId(fleetId);
         worker.setPhoneNumber(phoneNumber);
         worker.setUsername(username.trim());
         worker.setPasswordHash(passwordEncoder.encode(rawPassword));

@@ -7,6 +7,7 @@ import com.example.distribution_backernd.model.User;
 import com.example.distribution_backernd.repository.LocationLogRepository;
 import com.example.distribution_backernd.repository.TripRepository;
 import com.example.distribution_backernd.repository.UserRepository;
+import com.example.distribution_backernd.security.JwtUtil;
 import com.example.distribution_backernd.service.LocationStreamService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -26,6 +27,7 @@ public class DriverLocationController {
     private final LocationLogRepository logRepo;
     private final UserRepository userRepo;
     private final LocationStreamService streamService;
+    private final JwtUtil jwtUtil;
 
     @GetMapping("/hello")
     public String hello() {
@@ -47,16 +49,18 @@ public class DriverLocationController {
     }
 
     @PostMapping("/end/{tripId}")
-    public ResponseEntity<?> endTrip(@PathVariable Integer tripId, Authentication authentication) {
-        String username = authentication.getName();
+    public ResponseEntity<?> endTrip(
+            @RequestHeader("Authorization") String authHeader,
+            @PathVariable Integer tripId) {
 
-        User driver = userRepo.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Driver not found with username: " + username));
+        String jwt = authHeader.substring(7);
+        Integer fleetId = jwtUtil.extractFleetId(jwt);
+        Integer userId = jwtUtil.extractUserId(jwt);
 
         Trip trip = tripRepo.findById(tripId)
                 .orElseThrow(() -> new RuntimeException("Trip not found with id: " + tripId));
         // check if trip belongs to this user
-        if (!trip.getUserId().equals(driver.getId())) {
+        if (!trip.getUserId().equals(userId)) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Trip not found");
         }
 
@@ -66,17 +70,19 @@ public class DriverLocationController {
 
         trip.setStatus(TripStatus.COMPLETED);
         trip.setEndedAt(ZonedDateTime.now());
+        trip.setFleetId(fleetId);
         Trip savedTrip = tripRepo.save(trip);
 
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/log")
-    public ResponseEntity<?> logLocation(@RequestBody LocationLog newLog, Authentication authentication) {
-        String username = authentication.getName();
+    public ResponseEntity<?> logLocation(
+            @RequestHeader("Authorization") String authHeader,
+            @RequestBody LocationLog newLog, Authentication authentication) {
 
-        User driver = userRepo.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Driver not found with username: " + username));
+        String jwt = authHeader.substring(7);
+        Integer userId = jwtUtil.extractUserId(jwt);
 
         if (newLog.getTripId() == null) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("tripId is required");
@@ -84,7 +90,7 @@ public class DriverLocationController {
         Trip trip = tripRepo.findById(newLog.getTripId())
                 .orElseThrow(() -> new RuntimeException("Trip not found with id: " + newLog.getTripId()));
         // check if trip belongs to this user
-        if (!trip.getUserId().equals(driver.getId())) {
+        if (!trip.getUserId().equals(userId)) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Trip not found");
         }
 
@@ -97,24 +103,22 @@ public class DriverLocationController {
         }
 
         LocationLog savedLog = logRepo.save(newLog);
-        streamService.broadcastLocation(savedLog, driver.getId());
+        streamService.broadcastLocation(savedLog, userId);
 
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/batch-log")
     public ResponseEntity<?> logLocationBatch(
-            @RequestBody List<LocationLog> logs,
-            Authentication authentication) {
+            @RequestHeader("Authorization") String authHeader,
+            @RequestBody List<LocationLog> logs) {
 
         if (logs == null || logs.isEmpty()) {
             return ResponseEntity.ok("No logs to sync.");
         }
 
-        String username = authentication.getName();
-        User driver = userRepo.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Driver not found with username: " + username));
-
+        String jwt = authHeader.substring(7);
+        Integer userId = jwtUtil.extractUserId(jwt);
 
         Integer tripId = logs.getFirst().getTripId();
         if (tripId == null) {
@@ -124,7 +128,7 @@ public class DriverLocationController {
                 .orElseThrow(() -> new RuntimeException("Trip not found with id: " + tripId));
 
         // check if trip belongs to this user
-        if (!trip.getUserId().equals(driver.getId())) {
+        if (!trip.getUserId().equals(userId)) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Trip not found");
         }
         if (trip.getStatus() != TripStatus.ACTIVE) {
@@ -143,7 +147,7 @@ public class DriverLocationController {
         List<LocationLog> savedLogs = logRepo.saveAll(logs);
 
         if (!savedLogs.isEmpty()) {
-            streamService.broadcastLocation(savedLogs.get(savedLogs.size() - 1), driver.getId());
+            streamService.broadcastLocation(savedLogs.get(savedLogs.size() - 1), userId);
         }
 
         return ResponseEntity.ok("Synced " + savedLogs.size() + " location records.");
