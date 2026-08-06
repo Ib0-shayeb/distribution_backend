@@ -2,7 +2,9 @@ package com.example.distribution_backernd.service;
 
 import com.example.distribution_backernd.model.LocationLog;
 import com.example.distribution_backernd.model.Trip;
+import com.example.distribution_backernd.model.User;
 import com.example.distribution_backernd.repository.TripRepository;
+import com.example.distribution_backernd.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -17,10 +19,15 @@ import java.util.concurrent.CopyOnWriteArrayList;
 @Service
 @RequiredArgsConstructor
 public class LocationStreamService {
+    private final UserRepository userRepository;
     private final TripRepository tripRepo;
     private final Map<Integer, List<SseEmitter>> activeStreams = new ConcurrentHashMap<>();
 
-    public SseEmitter createStream(Integer userId) {
+    public SseEmitter createStream(Integer fleetId, Integer userId) {
+        // check if user belongs to fleet
+        User targetUser = userRepository.findByIdAndFleetId(userId, fleetId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
         // set timeout to infinite and because render handles killing idle connections
         SseEmitter emitter = new SseEmitter(-1L);
         activeStreams.computeIfAbsent(userId, k -> new CopyOnWriteArrayList<>()).add(emitter);
