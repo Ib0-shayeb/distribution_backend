@@ -19,37 +19,37 @@ public class LocationLogOrganisation {
 
     private final LocationLogRepository logRepo;
 
-    public List<TripHistory> getDriverTripHistory(Integer userId, ZonedDateTime start, ZonedDateTime end) {
-        List<LocationLog> flatLogs = logRepo.findHistoryRange(userId, start, end);
+//    public List<TripHistory> getDriverTripHistory(Integer userId, ZonedDateTime start, ZonedDateTime end) {
+//        List<LocationLog> flatLogs = logRepo.findHistoryRange(userId, start, end);
+//
+//        Map<Integer, List<LocationLogDTO>> logsByTripMap = flatLogs.stream()
+//                .collect(Collectors.groupingBy(
+//                        LocationLog::getTripId,
+//                        LinkedHashMap::new,
+//                        Collectors.mapping(
+//                                log -> new LocationLogDTO(
+//                                        log.getLatitude(),
+//                                        log.getLongitude()
+//                                ),
+//                                Collectors.toList()
+//                        )
+//                ));
+//
+//        // Convert map entries to TripHistoryDTO list
+//        return logsByTripMap.entrySet().stream()
+//                .map(entry -> new TripHistory(
+//                        entry.getKey(),
+//                        entry.getValue()
+//                ))
+//                .toList();
+//    }
 
-        Map<Integer, List<LocationLogDTO>> logsByTripMap = flatLogs.stream()
-                .collect(Collectors.groupingBy(
-                        LocationLog::getTripId,
-                        LinkedHashMap::new,
-                        Collectors.mapping(
-                                log -> new LocationLogDTO(
-                                        log.getLatitude(),
-                                        log.getLongitude()
-                                ),
-                                Collectors.toList()
-                        )
-                ));
-
-        // Convert map entries to TripHistoryDTO list
-        return logsByTripMap.entrySet().stream()
-                .map(entry -> new TripHistory(
-                        entry.getKey(),
-                        entry.getValue()
-                ))
-                .toList();
-    }
-
-    public List<DriverTripHistory> getBatchDriverTripHistory(List<Integer> userIds, ZonedDateTime start, ZonedDateTime end) {
+    public List<DriverTripHistory> getBatchDriverTripHistory(Integer fleetId, List<Integer> userIds, ZonedDateTime start, ZonedDateTime end) {
         if (userIds == null || userIds.isEmpty()) {
             return List.of();
         }
 
-        List<FlatTripLogProjection> flatRows = logRepo.findHistoryRangeForUsers(userIds, start, end);
+        List<FlatTripLogProjection> flatRows = logRepo.findHistoryRangeForUsers(fleetId, userIds, start, end);
 
         Map<Integer, Map<Integer, List<LocationLogDTO>>> grouped = flatRows.stream()
                 .collect(Collectors.groupingBy(
