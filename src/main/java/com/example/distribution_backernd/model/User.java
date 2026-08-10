@@ -9,18 +9,22 @@ public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(nullable = false)
     private Integer id;
 
-    @Column(name = "fleet_id")
+    @Column(name = "fleet_id", nullable = false)
     @JsonIgnore
     private Integer fleetId;
 
     @JsonIgnore
+    @Column(nullable = false)
     private String username;
 
     @JsonIgnore
+    @Column(nullable = false)
     private String password;
 
+    @Column(nullable = false)
     private String name;
 
     @Column(name = "phone_number")

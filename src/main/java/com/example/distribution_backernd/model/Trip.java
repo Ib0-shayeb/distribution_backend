@@ -10,9 +10,10 @@ import java.time.ZonedDateTime;
 public class Trip {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(nullable = false)
     private Integer id;
 
-    @Column(name = "fleet_id")
+    @Column(name = "fleet_id", nullable = false)
     @JsonIgnore
     private Integer fleetId;
 
@@ -20,7 +21,7 @@ public class Trip {
     private Integer userId;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", length = 20)
+    @Column(length = 20, nullable = false)
     private TripStatus status = TripStatus.ACTIVE;
 
     @Column(name = "started_at", nullable = false)

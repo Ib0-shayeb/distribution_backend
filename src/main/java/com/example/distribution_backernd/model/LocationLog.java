@@ -9,15 +9,18 @@ public class LocationLog {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(nullable = false)
     private Integer id;
 
-    @Column(name = "trip_id")
+    @Column(name = "trip_id",  nullable = false)
     private Integer tripId;
 
+    @Column(nullable = false)
     private Double latitude;
+    @Column(nullable = false)
     private Double longitude;
 
-    @Column(name = "recorded_at")
+    @Column(name = "recorded_at", nullable = false)
     private ZonedDateTime recordedAt;
 
     public Integer getId() { return id; }

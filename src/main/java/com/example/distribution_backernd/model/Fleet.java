@@ -8,7 +8,9 @@ import jakarta.persistence.*;
 public class Fleet {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(nullable = false)
     private Integer id;
 
+    @Column(nullable = false)
     private String name;
 }
