@@ -8,7 +8,6 @@ import jakarta.persistence.*;
 public class ChecklistItem {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(nullable = false)
     private Integer id;
 
     @Column(name = "checklist_id", nullable = false)

@@ -9,7 +9,6 @@ public class LocationLog {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(nullable = false)
     private Integer id;
 
     @Column(name = "trip_id",  nullable = false)
