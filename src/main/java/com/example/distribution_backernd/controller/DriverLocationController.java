@@ -35,13 +35,12 @@ public class DriverLocationController {
     }
 
     @PostMapping("/start")
-    public ResponseEntity<?> startTrip(Authentication authentication) {
-        String username = authentication.getName();
+    public ResponseEntity<?> startTrip(@RequestHeader("Authorization") String authHeader) {
+        String jwt = authHeader.substring(7);
+        Integer fleetId = jwtUtil.extractFleetId(jwt);
+        Integer userId = jwtUtil.extractUserId(jwt);
 
-        User driver = userRepo.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Driver not found with username: " + username));
-
-        Trip trip = new Trip(driver.getId(), driver.getFleetId(), ZonedDateTime.now());
+        Trip trip = new Trip(userId, fleetId, ZonedDateTime.now());
 
         Trip savedTrip = tripRepo.save(trip);
 
