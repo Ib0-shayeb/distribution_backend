@@ -8,4 +8,5 @@ import java.util.Optional;
 
 public interface ChecklistItemRepository extends JpaRepository<ChecklistItem, Integer> {
     List<ChecklistItem> findByChecklistIdAndFleetId(Integer checklistId, Integer fleetId);
+    void deleteByIdAndChecklistId(Integer id, Integer checklistId);
 }
