@@ -38,6 +38,7 @@ public class Trip {
     public Trip(Integer userId, Integer fleetId, ZonedDateTime startedAt) {
         this.userId = userId;
         this.startedAt = startedAt;
+        this.fleetId = fleetId;
         this.status = TripStatus.ACTIVE;
     }
 
