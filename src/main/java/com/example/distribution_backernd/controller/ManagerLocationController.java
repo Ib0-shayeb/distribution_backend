@@ -192,7 +192,7 @@ public class ManagerLocationController {
         return ResponseEntity.ok("Removed item.");
     }
 
-    @PostMapping("checklist/{checklistId}/assignDriver/{driverId}")
+    @PostMapping("checklist/{checklistId}/assign-driver/{driverId}")
     public ResponseEntity<?> assignDriver(
             @RequestHeader("Authorization") String authHeader,
             @PathVariable Integer checklistId,  @PathVariable Integer driverId) {
