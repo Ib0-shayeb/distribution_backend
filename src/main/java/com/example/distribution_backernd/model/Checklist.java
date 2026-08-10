@@ -26,6 +26,10 @@ public class Checklist {
         this.name = name;
         this.fleetId = fleetId;
     }
+    public Checklist(String name, Integer fleetId) {
+        this.name = name;
+        this.fleetId = fleetId;
+    }
     public Integer getDriverId() {return driverId;}
     public void setDriverId(Integer driverId) {this.driverId = driverId;
     }
