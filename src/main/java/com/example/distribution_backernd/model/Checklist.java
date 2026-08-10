@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "checklist")
+@Table(name = "checklists")
 public class Checklist {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
