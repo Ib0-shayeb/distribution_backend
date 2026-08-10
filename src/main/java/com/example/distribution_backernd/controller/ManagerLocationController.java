@@ -163,7 +163,7 @@ public class ManagerLocationController {
     }
 
     @PostMapping("/checklist/{checklistId}/add-items")
-    public ResponseEntity<?> createOrUpdateChecklistItems(
+    public ResponseEntity<?> addChecklistItems(
             @RequestHeader("Authorization") String authHeader,
             @PathVariable Integer checklistId, @RequestBody List<ChecklistItem> items) {
         String jwt = authHeader.substring(7);
@@ -177,5 +177,18 @@ public class ManagerLocationController {
         return ResponseEntity.ok("Synced " + items.size() + " item records.");
     }
 
+    @PostMapping("/checklist/{checklistId}/delete-items")
+    public ResponseEntity<?> deleteChecklistItems(
+            @RequestHeader("Authorization") String authHeader,
+            @PathVariable Integer checklistId, @RequestBody List<ChecklistItem> items) {
+        String jwt = authHeader.substring(7);
+        Integer fleetId = jwtUtil.extractFleetId(jwt);
 
+        Checklist checklist = checklistRepo.findByIdAndFleetId(checklistId, fleetId)
+                .orElseThrow(() -> new RuntimeException("Checklist with ID: " + checklistId + " does not exist"));
+
+        checklistItemRepo.saveAll(items);
+
+        return ResponseEntity.ok("Synced " + items.size() + " item records.");
+    }
 }
