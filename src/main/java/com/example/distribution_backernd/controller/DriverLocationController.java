@@ -156,4 +156,16 @@ public class DriverLocationController {
 
         return checklistRepo.findByDriverId(userId);
     }
+
+    @GetMapping("/assigned-checklists/{checklistId}")
+    public List<ChecklistItem> assignedChecklist(@RequestHeader("Authorization") String authHeader
+            , @PathVariable Integer checklistId) {
+        String jwt = authHeader.substring(7);
+        Integer userId = jwtUtil.extractUserId(jwt);
+        Integer fleetId = jwtUtil.extractFleetId(jwt);
+
+        Checklist checklist = checklistRepo.findByIdAndDriverId(checklistId, userId)
+                .orElseThrow(() -> new RuntimeException("Checklist doesent exist"));
+        return checklistItemRepo.findByChecklistId(checklistId);
+    }
 }

@@ -12,4 +12,5 @@ public interface ChecklistItemRepository extends JpaRepository<ChecklistItem, In
     @Query("SELECT ci FROM ChecklistItem ci JOIN Checklist c ON ci.checklistId = c.id WHERE c.id = :checklistId AND c.fleetId = :fleetId")
     List<ChecklistItem> findByChecklistIdAndFleetId(@Param("checklistId") Integer checklistId, @Param("fleetId") Integer fleetId);
     void deleteByIdAndChecklistId(Integer id, Integer checklistId);
+    List<ChecklistItem> findByChecklistId(Integer checklistId);
 }
