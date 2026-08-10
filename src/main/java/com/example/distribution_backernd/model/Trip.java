@@ -1,5 +1,6 @@
 package com.example.distribution_backernd.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 
 import java.time.ZonedDateTime;
@@ -9,13 +10,18 @@ import java.time.ZonedDateTime;
 public class Trip {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(nullable = false)
     private Integer id;
+
+    @Column(name = "fleet_id", nullable = false)
+    @JsonIgnore
+    private Integer fleetId;
 
     @Column(name = "user_id", nullable = false)
     private Integer userId;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", length = 20)
+    @Column(length = 20, nullable = false)
     private TripStatus status = TripStatus.ACTIVE;
 
     @Column(name = "started_at", nullable = false)
@@ -37,6 +43,9 @@ public class Trip {
 
     public Integer getId() { return id; }
     public void setId(Integer id) { this.id = id; }
+
+    public Integer getFleetId() { return fleetId; }
+    public void setFleetId(Integer fleetId) { this.fleetId = fleetId; }
 
     public TripStatus getStatus() { return status; }
     public void setStatus(TripStatus status) { this.status = status; }
