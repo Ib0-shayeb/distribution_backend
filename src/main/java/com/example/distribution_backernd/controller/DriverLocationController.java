@@ -1,12 +1,7 @@
 package com.example.distribution_backernd.controller;
 
-import com.example.distribution_backernd.model.LocationLog;
-import com.example.distribution_backernd.model.Trip;
-import com.example.distribution_backernd.model.TripStatus;
-import com.example.distribution_backernd.model.User;
-import com.example.distribution_backernd.repository.LocationLogRepository;
-import com.example.distribution_backernd.repository.TripRepository;
-import com.example.distribution_backernd.repository.UserRepository;
+import com.example.distribution_backernd.model.*;
+import com.example.distribution_backernd.repository.*;
 import com.example.distribution_backernd.security.JwtUtil;
 import com.example.distribution_backernd.service.LocationStreamService;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +21,8 @@ public class DriverLocationController {
     private final TripRepository tripRepo;
     private final LocationLogRepository logRepo;
     private final UserRepository userRepo;
+    private final ChecklistRepository checklistRepo;
+    private final ChecklistItemRepository checklistItemRepo;
     private final LocationStreamService streamService;
     private final JwtUtil jwtUtil;
 
@@ -150,5 +147,13 @@ public class DriverLocationController {
         }
 
         return ResponseEntity.ok("Synced " + savedLogs.size() + " location records.");
+    }
+
+    @GetMapping("/assigned-checklists")
+    public List<Checklist> assignedChecklist(@RequestHeader("Authorization") String authHeader) {
+        String jwt = authHeader.substring(7);
+        Integer userId = jwtUtil.extractUserId(jwt);
+
+        return checklistRepo.findByDriverId(userId);
     }
 }
