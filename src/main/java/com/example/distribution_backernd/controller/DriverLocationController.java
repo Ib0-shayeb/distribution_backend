@@ -41,7 +41,7 @@ public class DriverLocationController {
         User driver = userRepo.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Driver not found with username: " + username));
 
-        Trip trip = new Trip(driver.getId(), ZonedDateTime.now());
+        Trip trip = new Trip(driver.getId(), driver.getFleetId(), ZonedDateTime.now());
 
         Trip savedTrip = tripRepo.save(trip);
 

@@ -35,7 +35,7 @@ public class Trip {
 
     public Trip() {}
 
-    public Trip(Integer userId, ZonedDateTime startedAt) {
+    public Trip(Integer userId, Integer fleetId, ZonedDateTime startedAt) {
         this.userId = userId;
         this.startedAt = startedAt;
         this.status = TripStatus.ACTIVE;
