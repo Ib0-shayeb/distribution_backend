@@ -168,9 +168,15 @@ public class ManagerLocationController {
             @PathVariable Integer checklistId, @RequestBody List<ChecklistItem> items) {
         String jwt = authHeader.substring(7);
         Integer fleetId = jwtUtil.extractFleetId(jwt);
+        Integer userId = jwtUtil.extractUserId(jwt);
 
         Checklist checklist = checklistRepo.findByIdAndFleetId(checklistId, fleetId)
                 .orElseThrow(() -> new RuntimeException("Checklist with ID: " + checklistId + " does not exist"));
+
+        for (ChecklistItem item : items) {
+            item.setChecklistId(checklistId);
+            item.setAddedById(userId);
+        }
 
         checklistItemRepo.saveAll(items);
 
