@@ -130,9 +130,9 @@ public class ManagerLocationController {
     }
 
     @PostMapping("/create-checklist")
-    public ResponseEntity<?> registerWorker(
+    public ResponseEntity<?> createChecklist(
             @RequestHeader("Authorization") String authHeader,
-            @PathVariable String name) {
+            @RequestParam String name) {
 
         String jwt = authHeader.substring(7);
         Integer fleetId = jwtUtil.extractFleetId(jwt);
@@ -198,7 +198,7 @@ public class ManagerLocationController {
         return ResponseEntity.ok("Removed item.");
     }
 
-    @PostMapping("checklist/{checklistId}/assign-driver/{driverId}")
+    @PostMapping("/checklist/{checklistId}/assign-driver/{driverId}")
     public ResponseEntity<?> assignDriver(
             @RequestHeader("Authorization") String authHeader,
             @PathVariable Integer checklistId,  @PathVariable Integer driverId) {
@@ -209,6 +209,7 @@ public class ManagerLocationController {
                 .orElseThrow(() -> new RuntimeException("Checklist with ID: " + checklistId + " does not exist"));
 
         checklist.setDriverId(driverId);
+        checklistRepo.save(checklist);
 
         return ResponseEntity.ok("Assigned " + driverId + " to " + checklist.getId());
     }
