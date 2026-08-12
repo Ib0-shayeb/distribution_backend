@@ -11,6 +11,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
@@ -138,6 +139,7 @@ public class ManagerLocationController {
         Integer fleetId = jwtUtil.extractFleetId(jwt);
 
         Checklist checklist = new Checklist(name, fleetId);
+        checklistRepo.save(checklist);
 
         return ResponseEntity.ok("Checklist added successfully with ID: " + checklist.getId());
     }
@@ -183,7 +185,7 @@ public class ManagerLocationController {
         return ResponseEntity.ok("Synced " + items.size() + " item records.");
     }
 
-    @PostMapping("/checklist/{checklistId}/delete-item/{itemId}")
+    @DeleteMapping("/checklist/{checklistId}/delete-item/{itemId}")
     public ResponseEntity<?> deleteChecklistItems(
             @RequestHeader("Authorization") String authHeader,
             @PathVariable Integer checklistId,  @PathVariable Integer itemId) {
@@ -193,8 +195,12 @@ public class ManagerLocationController {
         Checklist checklist = checklistRepo.findByIdAndFleetId(checklistId, fleetId)
                 .orElseThrow(() -> new RuntimeException("Checklist with ID: " + checklistId + " does not exist"));
 
-        checklistItemRepo.deleteByIdAndChecklistId(itemId, checklistId);
+        long deletedCount = checklistItemRepo.deleteByIdAndChecklistId(itemId, checklistId);
 
+        if (deletedCount == 0) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body("Checklist item with ID " + itemId + " was not found in checklist " + checklistId);
+        }
         return ResponseEntity.ok("Removed item.");
     }
 
