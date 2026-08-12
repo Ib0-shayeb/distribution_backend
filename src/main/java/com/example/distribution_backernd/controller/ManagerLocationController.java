@@ -2,12 +2,8 @@ package com.example.distribution_backernd.controller;
 
 import com.example.distribution_backernd.dto.DriverTripHistory;
 import com.example.distribution_backernd.dto.TripHistory;
-import com.example.distribution_backernd.model.Authority;
-import com.example.distribution_backernd.model.LocationLog;
-import com.example.distribution_backernd.model.User;
-import com.example.distribution_backernd.repository.AuthorityRepository;
-import com.example.distribution_backernd.repository.LocationLogRepository;
-import com.example.distribution_backernd.repository.UserRepository;
+import com.example.distribution_backernd.model.*;
+import com.example.distribution_backernd.repository.*;
 import com.example.distribution_backernd.security.JwtUtil;
 import com.example.distribution_backernd.service.LocationLogOrganisation;
 import com.example.distribution_backernd.service.LocationStreamService;
@@ -32,6 +28,8 @@ public class ManagerLocationController {
     private final LocationLogOrganisation logOrg;
     private final LocationLogRepository logRepo;
     private final UserRepository userRepo;
+    private final ChecklistRepository checklistRepo;
+    private final ChecklistItemRepository checklistItemRepo;
     private final LocationStreamService streamService;
     private final PasswordEncoder passwordEncoder;
     private final AuthorityRepository authorityRepo;
@@ -129,5 +127,89 @@ public class ManagerLocationController {
         authorityRepo.save(driverAuth);
 
         return ResponseEntity.ok("Driver registered successfully with ID: " + savedWorker.getId());
+    }
+
+    @PostMapping("/create-checklist")
+    public ResponseEntity<?> registerWorker(
+            @RequestHeader("Authorization") String authHeader,
+            @PathVariable String name) {
+
+        String jwt = authHeader.substring(7);
+        Integer fleetId = jwtUtil.extractFleetId(jwt);
+
+        Checklist checklist = new Checklist(name, fleetId);
+
+        return ResponseEntity.ok("Checklist added successfully with ID: " + checklist.getId());
+    }
+
+    @GetMapping("/all-checklists")
+    public List<Checklist> getAllChecklists(
+            @RequestHeader("Authorization") String authHeader) {
+
+        String jwt = authHeader.substring(7);
+        Integer fleetId = jwtUtil.extractFleetId(jwt);
+
+        return checklistRepo.findByFleetId(fleetId);
+    }
+
+    @GetMapping("/checklist/{checklistId}/items")
+    public List<ChecklistItem> getChecklistItems(
+            @RequestHeader("Authorization") String authHeader,
+            @PathVariable Integer checklistId) {
+        String jwt = authHeader.substring(7);
+        Integer fleetId = jwtUtil.extractFleetId(jwt);
+
+        return checklistItemRepo.findByChecklistIdAndFleetId(checklistId, fleetId);
+    }
+
+    @PostMapping("/checklist/{checklistId}/add-items")
+    public ResponseEntity<?> addChecklistItems(
+            @RequestHeader("Authorization") String authHeader,
+            @PathVariable Integer checklistId, @RequestBody List<ChecklistItem> items) {
+        String jwt = authHeader.substring(7);
+        Integer fleetId = jwtUtil.extractFleetId(jwt);
+        Integer userId = jwtUtil.extractUserId(jwt);
+
+        Checklist checklist = checklistRepo.findByIdAndFleetId(checklistId, fleetId)
+                .orElseThrow(() -> new RuntimeException("Checklist with ID: " + checklistId + " does not exist"));
+
+        for (ChecklistItem item : items) {
+            item.setChecklistId(checklistId);
+            item.setAddedById(userId);
+        }
+
+        checklistItemRepo.saveAll(items);
+
+        return ResponseEntity.ok("Synced " + items.size() + " item records.");
+    }
+
+    @PostMapping("/checklist/{checklistId}/delete-item/{itemId}")
+    public ResponseEntity<?> deleteChecklistItems(
+            @RequestHeader("Authorization") String authHeader,
+            @PathVariable Integer checklistId,  @PathVariable Integer itemId) {
+        String jwt = authHeader.substring(7);
+        Integer fleetId = jwtUtil.extractFleetId(jwt);
+
+        Checklist checklist = checklistRepo.findByIdAndFleetId(checklistId, fleetId)
+                .orElseThrow(() -> new RuntimeException("Checklist with ID: " + checklistId + " does not exist"));
+
+        checklistItemRepo.deleteByIdAndChecklistId(itemId, checklistId);
+
+        return ResponseEntity.ok("Removed item.");
+    }
+
+    @PostMapping("checklist/{checklistId}/assign-driver/{driverId}")
+    public ResponseEntity<?> assignDriver(
+            @RequestHeader("Authorization") String authHeader,
+            @PathVariable Integer checklistId,  @PathVariable Integer driverId) {
+        String jwt = authHeader.substring(7);
+        Integer fleetId = jwtUtil.extractFleetId(jwt);
+
+        Checklist checklist = checklistRepo.findByIdAndFleetId(checklistId, fleetId)
+                .orElseThrow(() -> new RuntimeException("Checklist with ID: " + checklistId + " does not exist"));
+
+        checklist.setDriverId(driverId);
+
+        return ResponseEntity.ok("Assigned " + driverId + " to " + checklist.getId());
     }
 }
