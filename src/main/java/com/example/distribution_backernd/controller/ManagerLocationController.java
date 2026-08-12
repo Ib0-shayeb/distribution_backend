@@ -204,6 +204,22 @@ public class ManagerLocationController {
         return ResponseEntity.ok("Removed item.");
     }
 
+    @DeleteMapping("/checklist/{checklistId}")
+    public ResponseEntity<?> deleteChecklist(
+            @RequestHeader("Authorization") String authHeader,
+            @PathVariable Integer checklistId) {
+        String jwt = authHeader.substring(7);
+        Integer fleetId = jwtUtil.extractFleetId(jwt);
+
+        long deletedCount = checklistRepo.deleteByIdAndFleetId(checklistId, fleetId);
+
+        if (deletedCount == 0) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body("Checklist item not found");
+        }
+        return ResponseEntity.ok("Removed item.");
+    }
+
     @PostMapping("/checklist/{checklistId}/assign-driver/{driverId}")
     public ResponseEntity<?> assignDriver(
             @RequestHeader("Authorization") String authHeader,
