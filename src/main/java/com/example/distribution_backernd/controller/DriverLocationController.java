@@ -190,7 +190,7 @@ public class DriverLocationController {
         return ResponseEntity.ok("Synced " + items.size() + " item records.");
     }
 
-    @PostMapping("/checklist/{checklistId}/delete-item/{itemId}")
+    @DeleteMapping("/checklist/{checklistId}/delete-item/{itemId}")
     public ResponseEntity<?> deleteChecklistItems(
             @RequestHeader("Authorization") String authHeader, @PathVariable Integer itemId, @PathVariable Integer checklistId) {
         String jwt = authHeader.substring(7);
