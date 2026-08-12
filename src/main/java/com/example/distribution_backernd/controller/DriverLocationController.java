@@ -192,7 +192,7 @@ public class DriverLocationController {
 
     @PostMapping("/checklist/{checklistId}/delete-item/{itemId}")
     public ResponseEntity<?> deleteChecklistItems(
-            @RequestHeader("Authorization") String authHeader, @PathVariable Integer itemId) {
+            @RequestHeader("Authorization") String authHeader, @PathVariable Integer itemId, @PathVariable Integer checklistId) {
         String jwt = authHeader.substring(7);
         Integer userId = jwtUtil.extractUserId(jwt);
 
