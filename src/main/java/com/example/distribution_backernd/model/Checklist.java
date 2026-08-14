@@ -4,6 +4,8 @@ package com.example.distribution_backernd.model;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "checklists")
 public class Checklist {
@@ -19,6 +21,9 @@ public class Checklist {
 
     @Column(name = "driver_id")
     private Integer driverId;
+
+    @Column(name = "completed_at")
+    private LocalDateTime completedAt;
 
     public Checklist() {}
     public Checklist(String name, Integer fleetId,  Integer driverId) {
@@ -41,4 +46,6 @@ public class Checklist {
 
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
+    public LocalDateTime getCompletedAt() { return completedAt; }
+    public void setCompletedAt(LocalDateTime completedAt) { this.completedAt = completedAt; }
 }

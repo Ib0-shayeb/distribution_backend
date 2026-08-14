@@ -4,6 +4,8 @@ package com.example.distribution_backernd.model;
 import jakarta.persistence.*;
 import jakarta.persistence.criteria.CriteriaBuilder;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "checklist_items")
 public class ChecklistItem {
@@ -23,6 +25,9 @@ public class ChecklistItem {
 
     @Column(name = "added_by_id", nullable = false)
     private Integer addedById;
+
+    @Column(name = "completed_at")
+    private LocalDateTime completedAt;
 
     @Column(nullable = false)
     private Double latitude;
@@ -70,4 +75,6 @@ public class ChecklistItem {
     public void setName(String name) { this.name = name; }
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
+    public LocalDateTime getCompletedAt() { return completedAt; }
+    public void setCompletedAt(LocalDateTime completedAt) { this.completedAt = completedAt; }
 }
