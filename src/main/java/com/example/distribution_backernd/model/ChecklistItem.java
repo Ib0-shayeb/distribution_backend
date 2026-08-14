@@ -14,6 +14,10 @@ public class ChecklistItem {
     @Column(name = "checklist_id", nullable = false)
     private Integer checklistId;
 
+    private String name;
+
+    private String description;
+
     @Column(name = "google_place_id")
     private String googlePlaceId;
 
@@ -57,4 +61,9 @@ public class ChecklistItem {
 
     public Double getLongitude() { return longitude; }
     public void setLongitude(Double longitude) { this.longitude = longitude; }
+
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
 }
