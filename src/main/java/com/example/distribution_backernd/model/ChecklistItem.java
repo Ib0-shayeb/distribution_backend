@@ -30,18 +30,22 @@ public class ChecklistItem {
     private Double longitude;
 
     public ChecklistItem() {}
-    public ChecklistItem(Integer checklistId, Double latitude, Double longitude, Integer addedById ) {
+    public ChecklistItem(Integer checklistId, Double latitude, Double longitude, Integer addedById, String name, String description) {
         this.checklistId = checklistId;
         this.latitude = latitude;
         this.longitude = longitude;
         this.addedById = addedById;
+        this.name = name;
+        this.description = description;
     }
-    public ChecklistItem(Integer checklistId, Double latitude, Double longitude, Integer addedById, String googlePlaceId) {
+    public ChecklistItem(Integer checklistId, Double latitude, Double longitude, Integer addedById, String name, String description, String googlePlaceId) {
         this.checklistId = checklistId;
         this.latitude = latitude;
         this.longitude = longitude;
         this.addedById = addedById;
         this.googlePlaceId = googlePlaceId;
+        this.name = name;
+        this.description = description;
     }
 
     public Integer getAddedById() { return addedById; }
