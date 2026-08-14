@@ -196,7 +196,12 @@ public class DriverLocationController {
         String jwt = authHeader.substring(7);
         Integer userId = jwtUtil.extractUserId(jwt);
 
-        checklistItemRepo.deleteByIdAndAddedById(itemId, userId);
+        long deletedCount = checklistItemRepo.deleteByIdAndAddedById(itemId, userId);
+
+        if (deletedCount == 0) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("You do not have permission to delete this item or it does not exist.");
+        }
 
         return ResponseEntity.ok("Removed item.");
     }

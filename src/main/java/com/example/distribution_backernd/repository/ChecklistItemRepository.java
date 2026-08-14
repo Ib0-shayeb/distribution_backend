@@ -15,6 +15,6 @@ public interface ChecklistItemRepository extends JpaRepository<ChecklistItem, In
     @Transactional
     long deleteByIdAndChecklistId(Integer id, Integer checklistId);
     @Transactional
-    void deleteByIdAndAddedById(Integer itemId, Integer addedById);
+    long deleteByIdAndAddedById(Integer itemId, Integer addedById);
     List<ChecklistItem> findByChecklistId(Integer checklistId);
 }
