@@ -1,5 +1,6 @@
 package com.example.distribution_backernd.controller;
 
+import com.example.distribution_backernd.dto.ChecklistWithItemsDTO;
 import com.example.distribution_backernd.dto.DriverTripHistory;
 import com.example.distribution_backernd.dto.TripHistory;
 import com.example.distribution_backernd.model.*;
@@ -18,8 +19,10 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/manager/locations")
@@ -154,6 +157,21 @@ public class ManagerLocationController {
         return checklistRepo.findByFleetId(fleetId);
     }
 
+    @GetMapping("/checklists")
+    public List<ChecklistWithItemsDTO> getAllChecklists(
+            @RequestHeader("Authorization") String authHeader,
+            @RequestParam Integer driverId) {
+
+        String jwt = authHeader.substring(7);
+        Integer fleetId = jwtUtil.extractFleetId(jwt);
+
+        List<Checklist> checklists = checklistRepo.findByFleetIdAndDriverIdWithItems(fleetId, driverId);
+
+        return checklists.stream()
+                .map(c -> new ChecklistWithItemsDTO(c, c.getItems()))
+                .toList();
+    }
+
     @GetMapping("/checklist/{checklistId}/items")
     public List<ChecklistItem> getChecklistItems(
             @RequestHeader("Authorization") String authHeader,
@@ -163,6 +181,7 @@ public class ManagerLocationController {
 
         return checklistItemRepo.findByChecklistIdAndFleetId(checklistId, fleetId);
     }
+
 
     @PostMapping("/checklist/{checklistId}/add-items")
     public ResponseEntity<?> addChecklistItems(
@@ -176,7 +195,7 @@ public class ManagerLocationController {
                 .orElseThrow(() -> new RuntimeException("Checklist with ID: " + checklistId + " does not exist"));
 
         for (ChecklistItem item : items) {
-            item.setChecklistId(checklistId);
+            item.setChecklist(checklist);
             item.setAddedById(userId);
         }
 

@@ -5,6 +5,8 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "checklists")
@@ -24,6 +26,13 @@ public class Checklist {
 
     @Column(name = "completed_at")
     private LocalDateTime completedAt;
+
+    @OneToMany(
+            mappedBy = "checklist",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    private List<ChecklistItem> items = new ArrayList<>();
 
     public Checklist() {}
     public Checklist(String name, Integer fleetId,  Integer driverId) {
@@ -48,4 +57,6 @@ public class Checklist {
     public void setName(String name) { this.name = name; }
     public LocalDateTime getCompletedAt() { return completedAt; }
     public void setCompletedAt(LocalDateTime completedAt) { this.completedAt = completedAt; }
+
+    public List<ChecklistItem> getItems() { return items; }
 }

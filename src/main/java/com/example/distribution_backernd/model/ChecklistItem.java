@@ -1,6 +1,7 @@
 package com.example.distribution_backernd.model;
 
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.persistence.criteria.CriteriaBuilder;
 
@@ -12,9 +13,6 @@ public class ChecklistItem {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
-
-    @Column(name = "checklist_id", nullable = false)
-    private Integer checklistId;
 
     private String name;
 
@@ -34,9 +32,13 @@ public class ChecklistItem {
     @Column(nullable = false)
     private Double longitude;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "checklist_id", nullable = false)
+    @JsonIgnore // Prevents circular reference during serialization
+    private Checklist checklist;
+
     public ChecklistItem() {}
     public ChecklistItem(Integer checklistId, Double latitude, Double longitude, Integer addedById, String name, String description) {
-        this.checklistId = checklistId;
         this.latitude = latitude;
         this.longitude = longitude;
         this.addedById = addedById;
@@ -44,7 +46,6 @@ public class ChecklistItem {
         this.description = description;
     }
     public ChecklistItem(Integer checklistId, Double latitude, Double longitude, Integer addedById, String name, String description, String googlePlaceId) {
-        this.checklistId = checklistId;
         this.latitude = latitude;
         this.longitude = longitude;
         this.addedById = addedById;
@@ -62,9 +63,6 @@ public class ChecklistItem {
     public String getGooglePlaceId() { return googlePlaceId; }
     public void setGooglePlaceId(String googlePlaceId) { this.googlePlaceId = googlePlaceId; }
 
-    public Integer getChecklistId() { return checklistId; }
-    public void setChecklistId(Integer checklistId) { this.checklistId = checklistId; }
-
     public Double getLatitude() { return latitude; }
     public void setLatitude(Double latitude) { this.latitude = latitude; }
 
@@ -77,4 +75,7 @@ public class ChecklistItem {
     public void setDescription(String description) { this.description = description; }
     public LocalDateTime getCompletedAt() { return completedAt; }
     public void setCompletedAt(LocalDateTime completedAt) { this.completedAt = completedAt; }
+
+    public Checklist getChecklist() {return checklist;}
+    public void setChecklist(Checklist checklist) {this.checklist = checklist;}
 }

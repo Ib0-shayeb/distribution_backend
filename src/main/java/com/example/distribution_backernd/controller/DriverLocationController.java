@@ -181,7 +181,7 @@ public class DriverLocationController {
                 .orElseThrow(() -> new RuntimeException("Checklist does not exist"));
 
         for (ChecklistItem item : items) {
-            item.setChecklistId(checklistId);
+            item.setChecklist(checklist);
             item.setAddedById(userId);
         }
 
