@@ -1,5 +1,6 @@
 package com.example.distribution_backernd.controller;
 
+import com.example.distribution_backernd.dto.ChecklistWithItemsDTO;
 import com.example.distribution_backernd.model.*;
 import com.example.distribution_backernd.repository.*;
 import com.example.distribution_backernd.security.JwtUtil;
@@ -156,6 +157,19 @@ public class DriverLocationController {
         Integer userId = jwtUtil.extractUserId(jwt);
 
         return checklistRepo.findByDriverId(userId);
+    }
+
+    @GetMapping("/assigned-checklists-with-items")
+    public List<ChecklistWithItemsDTO> assignedChecklistWithItems(@RequestHeader("Authorization") String authHeader) {
+        String jwt = authHeader.substring(7);
+        Integer userId = jwtUtil.extractUserId(jwt);
+        Integer fleetId = jwtUtil.extractFleetId(jwt);
+
+        List<Checklist> checklists = checklistRepo.findByFleetIdAndDriverIdWithItems(fleetId, userId);
+
+        return checklists.stream()
+                .map(c -> new ChecklistWithItemsDTO(c, c.getItems()))
+                .toList();
     }
 
     @GetMapping("/assigned-checklists/{checklistId}")

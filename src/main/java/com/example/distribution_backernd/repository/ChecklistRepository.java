@@ -22,4 +22,8 @@ public interface ChecklistRepository extends JpaRepository<Checklist, Integer> {
             @Param("fleetId") Integer fleetId,
             @Param("driverId") Integer driverId
     );
+    @Query("SELECT c FROM Checklist c LEFT JOIN FETCH c.items WHERE c.driverId = :driverId")
+    List<Checklist> findByDriverIdWithItems(
+            @Param("driverId") Integer driverId
+    );
 }
