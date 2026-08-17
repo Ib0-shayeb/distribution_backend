@@ -1,10 +1,13 @@
 package com.example.distribution_backernd.controller;
 
 import com.example.distribution_backernd.dto.ChecklistWithItemsDTO;
+import com.example.distribution_backernd.dto.LocationLogDTO;
+import com.example.distribution_backernd.dto.LocationScanResponseDTO;
 import com.example.distribution_backernd.model.*;
 import com.example.distribution_backernd.repository.*;
 import com.example.distribution_backernd.security.JwtUtil;
 import com.example.distribution_backernd.service.LocationStreamService;
+import com.example.distribution_backernd.util.LocationUtils;
 import jakarta.persistence.Index;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -12,8 +15,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
 import java.util.List;
+
+import static java.lang.Math.abs;
+import static java.lang.Math.pow;
 
 @RestController
 @RequestMapping("/api/driver/locations")
@@ -149,6 +157,54 @@ public class DriverLocationController {
         }
 
         return ResponseEntity.ok("Synced " + savedLogs.size() + " location records.");
+    }
+
+    @PostMapping("/scan")
+    public ResponseEntity<?> scanLocation(
+            @RequestHeader("Authorization") String authHeader,
+            @RequestBody LocationLogDTO location) {
+        if (location == null || location.latitude() == null || location.longitude() == null) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Latitude and longitude are required.");
+        }
+
+        String jwt = authHeader.substring(7);
+        Integer userId = jwtUtil.extractUserId(jwt);
+        Integer fleetId = jwtUtil.extractFleetId(jwt);
+
+        List<Checklist> checklists = checklistRepo.findByFleetIdAndDriverIdWithItems(fleetId, userId);
+
+        List<ChecklistItem> completedItems = new ArrayList<>();
+        List<Checklist> completedChecklists = new ArrayList<>();
+
+        final double GEOFENCE_RADIUS_METERS = 50.0;
+
+        for (Checklist checklist : checklists) {
+            boolean allChecklistItemsCompleted = true;
+            for (ChecklistItem item : checklist.getItems()) {
+                double distance = LocationUtils.distanceInMeters(item.getLatitude(), item.getLongitude(), location.latitude(), location.longitude());
+                if (item.getCompletedAt() == null && distance < GEOFENCE_RADIUS_METERS) {
+                    item.setCompletedAt(LocalDateTime.now());
+                    checklistItemRepo.save(item);
+                    completedItems.add(item);
+                }
+                if (item.getCompletedAt() == null) {allChecklistItemsCompleted = false;}
+            }
+            if (checklist.getCompletedAt() == null && allChecklistItemsCompleted) {
+                checklist.setCompletedAt(LocalDateTime.now());
+                checklistRepo.save(checklist);
+                completedChecklists.add(checklist);
+            }
+        }
+
+        List<ChecklistWithItemsDTO> updatedChecklistWithItems = checklists.stream()
+                .map(c -> new ChecklistWithItemsDTO(c, c.getItems()))
+                .toList();
+
+        return ResponseEntity.ok(new LocationScanResponseDTO(
+                completedItems,
+                completedChecklists,
+                updatedChecklistWithItems
+        ));
     }
 
     @GetMapping("/assigned-checklists")
