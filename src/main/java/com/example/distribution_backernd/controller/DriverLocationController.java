@@ -176,7 +176,7 @@ public class DriverLocationController {
         List<ChecklistItem> completedItems = new ArrayList<>();
         List<Checklist> completedChecklists = new ArrayList<>();
 
-        final double GEOFENCE_RADIUS_METERS = 50.0;
+        final double GEOFENCE_RADIUS_METERS = 40.0;
 
         for (Checklist checklist : checklists) {
             boolean allChecklistItemsCompleted = true;
