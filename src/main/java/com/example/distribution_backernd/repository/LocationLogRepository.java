@@ -47,7 +47,8 @@ public interface LocationLogRepository extends JpaRepository<LocationLog, Intege
             t.user_id AS userId, 
             l.trip_id AS tripId, 
             l.latitude AS latitude, 
-            l.longitude AS longitude
+            l.longitude AS longitude,
+            l.recordedAt AS recorderAt
         FROM location_logs l
         JOIN trips t ON l.trip_id = t.id
         WHERE t.fleet_id = :fleetId 

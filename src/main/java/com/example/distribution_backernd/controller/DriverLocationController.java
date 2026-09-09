@@ -1,7 +1,7 @@
 package com.example.distribution_backernd.controller;
 
 import com.example.distribution_backernd.dto.ChecklistWithItemsDTO;
-import com.example.distribution_backernd.dto.LocationLogDTO;
+import com.example.distribution_backernd.dto.LocationDTO;
 import com.example.distribution_backernd.dto.LocationScanResponseDTO;
 import com.example.distribution_backernd.model.*;
 import com.example.distribution_backernd.repository.*;
@@ -162,7 +162,7 @@ public class DriverLocationController {
     @PostMapping("/scan")
     public ResponseEntity<?> scanLocation(
             @RequestHeader("Authorization") String authHeader,
-            @RequestBody LocationLogDTO location) {
+            @RequestBody LocationDTO location) {
         if (location == null || location.latitude() == null || location.longitude() == null) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Latitude and longitude are required.");
         }

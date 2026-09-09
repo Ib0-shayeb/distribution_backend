@@ -4,5 +4,6 @@ import java.time.ZonedDateTime;
 
 public record LocationLogDTO(
         Double latitude,
-        Double longitude
+        Double longitude,
+        ZonedDateTime recordedAt
 ) {}
