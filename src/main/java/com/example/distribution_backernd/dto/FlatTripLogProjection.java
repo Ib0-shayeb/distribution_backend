@@ -1,5 +1,6 @@
 package com.example.distribution_backernd.dto;
 
+import java.time.Instant;
 import java.time.ZonedDateTime;
 
 public interface FlatTripLogProjection {
@@ -7,5 +8,5 @@ public interface FlatTripLogProjection {
     Integer getTripId();
     Double getLatitude();
     Double getLongitude();
-    ZonedDateTime getRecordedAt();
+    Instant getRecordedAt();
 }

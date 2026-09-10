@@ -59,7 +59,7 @@ public class LocationLogOrganisation {
                                 FlatTripLogProjection::getTripId,
                                 LinkedHashMap::new,
                                 Collectors.mapping(
-                                        row -> new LocationLogDTO(row.getLatitude(), row.getLongitude(), row.getRecordedAt()),
+                                        row -> new LocationLogDTO(row.getLatitude(), row.getLongitude(), row.getRecordedAt().atZone(java.time.ZoneId.systemDefault())),
                                         Collectors.toList()
                                 )
                         )
