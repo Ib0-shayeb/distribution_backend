@@ -78,14 +78,14 @@ public class ManagerLocationController {
 
     @GetMapping(value = "/stream", produces = "text/event-stream")
     public SseEmitter streamDriverLocation(
-            @RequestHeader("Authorization") String authHeader,
+            @RequestParam(name = "token") String token,
             @RequestParam Integer userId,
             HttpServletResponse response) {
         response.setHeader("X-Accel-Buffering", "no");
         response.setHeader("Cache-Control", "no-cache");
         response.setHeader("Connection", "keep-alive");
 
-        String jwt = authHeader.substring(7);
+        String jwt = token;
         Integer fleetId = jwtUtil.extractFleetId(jwt);
 
         return streamService.createStream(fleetId, userId);
