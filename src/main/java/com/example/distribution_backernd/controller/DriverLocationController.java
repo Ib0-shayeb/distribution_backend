@@ -196,6 +196,10 @@ public class DriverLocationController {
             }
         }
 
+        if (!completedItems.isEmpty()) {
+            streamService.broadcastChecklistUpdate(userId);
+        }
+
         List<ChecklistWithItemsDTO> updatedChecklistWithItems = checklists.stream()
                 .map(c -> new ChecklistWithItemsDTO(c, c.getItems()))
                 .toList();
