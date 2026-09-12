@@ -1,7 +1,6 @@
 package com.example.distribution_backernd.service;
 
 import com.example.distribution_backernd.model.LocationLog;
-import com.example.distribution_backernd.model.Trip;
 import com.example.distribution_backernd.model.User;
 import com.example.distribution_backernd.repository.TripRepository;
 import com.example.distribution_backernd.repository.UserRepository;
@@ -18,7 +17,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 @Service
 @RequiredArgsConstructor
-public class LocationStreamService {
+public class UserStreamService {
     private final UserRepository userRepository;
     private final TripRepository tripRepo;
     private final Map<Integer, List<SseEmitter>> activeStreams = new ConcurrentHashMap<>();
@@ -71,7 +70,21 @@ public class LocationStreamService {
                     emitter.send(SseEmitter.event()
                             .name("location-update")
                             .data(""));
-                            //.data(log));// the data is not being used at this point
+                } catch (IOException e) {
+                    removeEmitter(userId, emitter);
+                }
+            }
+        }
+    }
+
+    public void broadcastChecklistUpdate(Integer userId) {
+        List<SseEmitter> emitters = activeStreams.get(userId);
+        if (emitters != null) {
+            for (SseEmitter emitter : emitters) {
+                try {
+                    emitter.send(SseEmitter.event()
+                            .name("checklist-update")
+                            .data("updated"));
                 } catch (IOException e) {
                     removeEmitter(userId, emitter);
                 }

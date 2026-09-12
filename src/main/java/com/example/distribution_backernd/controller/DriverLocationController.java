@@ -6,7 +6,7 @@ import com.example.distribution_backernd.dto.LocationScanResponseDTO;
 import com.example.distribution_backernd.model.*;
 import com.example.distribution_backernd.repository.*;
 import com.example.distribution_backernd.security.JwtUtil;
-import com.example.distribution_backernd.service.LocationStreamService;
+import com.example.distribution_backernd.service.UserStreamService;
 import com.example.distribution_backernd.util.LocationUtils;
 import jakarta.persistence.Index;
 import lombok.RequiredArgsConstructor;
@@ -33,7 +33,7 @@ public class DriverLocationController {
     private final UserRepository userRepo;
     private final ChecklistRepository checklistRepo;
     private final ChecklistItemRepository checklistItemRepo;
-    private final LocationStreamService streamService;
+    private final UserStreamService streamService;
     private final JwtUtil jwtUtil;
 
     @GetMapping("/hello")
