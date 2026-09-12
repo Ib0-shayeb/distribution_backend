@@ -7,7 +7,7 @@ import com.example.distribution_backernd.model.*;
 import com.example.distribution_backernd.repository.*;
 import com.example.distribution_backernd.security.JwtUtil;
 import com.example.distribution_backernd.service.LocationLogOrganisation;
-import com.example.distribution_backernd.service.LocationStreamService;
+import com.example.distribution_backernd.service.UserStreamService;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,7 +34,7 @@ public class ManagerLocationController {
     private final UserRepository userRepo;
     private final ChecklistRepository checklistRepo;
     private final ChecklistItemRepository checklistItemRepo;
-    private final LocationStreamService streamService;
+    private final UserStreamService streamService;
     private final PasswordEncoder passwordEncoder;
     private final AuthorityRepository authorityRepo;
     private final JwtUtil jwtUtil;
