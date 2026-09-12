@@ -109,7 +109,7 @@ public class DriverLocationController {
         }
 
         LocationLog savedLog = logRepo.save(newLog);
-        streamService.broadcastLocation(savedLog, userId);
+        streamService.broadcastLocation(userId, List.of(savedLog));
 
         return ResponseEntity.ok().build();
     }
@@ -153,7 +153,7 @@ public class DriverLocationController {
         List<LocationLog> savedLogs = logRepo.saveAll(logs);
 
         if (!savedLogs.isEmpty()) {
-            streamService.broadcastLocation(savedLogs.get(savedLogs.size() - 1), userId);
+            streamService.broadcastLocation(userId, savedLogs);
         }
 
         return ResponseEntity.ok("Synced " + savedLogs.size() + " location records.");
@@ -216,7 +216,7 @@ public class DriverLocationController {
                 .toList();
 
         if (!completedItems.isEmpty()) {
-            streamService.broadcastChecklistUpdate(userId);
+            streamService.broadcastChecklistUpdate(userId, updatedChecklistWithItems);
         }
 
         return ResponseEntity.ok(new LocationScanResponseDTO(

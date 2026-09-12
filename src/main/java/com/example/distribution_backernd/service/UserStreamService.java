@@ -1,5 +1,6 @@
 package com.example.distribution_backernd.service;
 
+import com.example.distribution_backernd.dto.ChecklistWithItemsDTO;
 import com.example.distribution_backernd.model.LocationLog;
 import com.example.distribution_backernd.model.User;
 import com.example.distribution_backernd.repository.TripRepository;
@@ -62,14 +63,14 @@ public class UserStreamService {
         }
     }
 
-    public void broadcastLocation(LocationLog log, Integer userId) {
+    public void broadcastLocation(Integer userId, List<LocationLog> logs) {
         List<SseEmitter> emitters = activeStreams.get(userId);
         if (emitters != null) {
             for (SseEmitter emitter : emitters) {
                 try {
                     emitter.send(SseEmitter.event()
                             .name("location-update")
-                            .data(""));
+                            .data(logs));
                 } catch (IOException e) {
                     removeEmitter(userId, emitter);
                 }
@@ -77,14 +78,14 @@ public class UserStreamService {
         }
     }
 
-    public void broadcastChecklistUpdate(Integer userId) {
+    public void broadcastChecklistUpdate(Integer userId, List<ChecklistWithItemsDTO> updatedChecklists) {
         List<SseEmitter> emitters = activeStreams.get(userId);
         if (emitters != null) {
             for (SseEmitter emitter : emitters) {
                 try {
                     emitter.send(SseEmitter.event()
                             .name("checklist-update")
-                            .data("updated"));
+                            .data(updatedChecklists));
                 } catch (IOException e) {
                     removeEmitter(userId, emitter);
                 }
