@@ -177,32 +177,47 @@ public class DriverLocationController {
         List<Checklist> completedChecklists = new ArrayList<>();
 
         final double GEOFENCE_RADIUS_METERS = 40.0;
+        LocalDateTime now = LocalDateTime.now();
 
         for (Checklist checklist : checklists) {
             boolean allChecklistItemsCompleted = true;
+
             for (ChecklistItem item : checklist.getItems()) {
-                double distance = LocationUtils.distanceInMeters(item.getLatitude(), item.getLongitude(), location.latitude(), location.longitude());
-                if (item.getCompletedAt() == null && distance < GEOFENCE_RADIUS_METERS) {
-                    item.setCompletedAt(LocalDateTime.now());
-                    checklistItemRepo.save(item);
-                    completedItems.add(item);
+                if (item.getCompletedAt() == null) {
+                    double distance = LocationUtils.distanceInMeters(
+                            item.getLatitude(), item.getLongitude(),
+                            location.latitude(), location.longitude()
+                    );
+
+                    if (distance < GEOFENCE_RADIUS_METERS) {
+                        item.setCompletedAt(now);
+                        completedItems.add(item);
+                    } else {
+                        allChecklistItemsCompleted = false;
+                    }
                 }
-                if (item.getCompletedAt() == null) {allChecklistItemsCompleted = false;}
             }
+
             if (checklist.getCompletedAt() == null && allChecklistItemsCompleted) {
-                checklist.setCompletedAt(LocalDateTime.now());
-                checklistRepo.save(checklist);
+                checklist.setCompletedAt(now);
                 completedChecklists.add(checklist);
             }
         }
 
         if (!completedItems.isEmpty()) {
-            streamService.broadcastChecklistUpdate(userId);
+            checklistItemRepo.saveAll(completedItems);
+        }
+        if (!completedChecklists.isEmpty()) {
+            checklistRepo.saveAll(completedChecklists);
         }
 
         List<ChecklistWithItemsDTO> updatedChecklistWithItems = checklists.stream()
                 .map(c -> new ChecklistWithItemsDTO(c, c.getItems()))
                 .toList();
+
+        if (!completedItems.isEmpty()) {
+            streamService.broadcastChecklistUpdate(userId);
+        }
 
         return ResponseEntity.ok(new LocationScanResponseDTO(
                 completedItems,
