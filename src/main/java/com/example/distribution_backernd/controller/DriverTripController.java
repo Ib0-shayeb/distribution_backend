@@ -3,16 +3,21 @@ package com.example.distribution_backernd.controller;
 import com.example.distribution_backernd.dto.ChecklistWithItemsDTO;
 import com.example.distribution_backernd.dto.LocationDTO;
 import com.example.distribution_backernd.dto.LocationScanResponseDTO;
-import com.example.distribution_backernd.model.*;
-import com.example.distribution_backernd.repository.*;
+import com.example.distribution_backernd.model.Checklist;
+import com.example.distribution_backernd.model.ChecklistItem;
+import com.example.distribution_backernd.model.LocationLog;
+import com.example.distribution_backernd.model.Trip;
+import com.example.distribution_backernd.model.TripStatus;
+import com.example.distribution_backernd.repository.ChecklistItemRepository;
+import com.example.distribution_backernd.repository.ChecklistRepository;
+import com.example.distribution_backernd.repository.LocationLogRepository;
+import com.example.distribution_backernd.repository.TripRepository;
 import com.example.distribution_backernd.security.JwtUtil;
 import com.example.distribution_backernd.service.UserStreamService;
 import com.example.distribution_backernd.util.LocationUtils;
-import jakarta.persistence.Index;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -20,26 +25,17 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-import static java.lang.Math.abs;
-import static java.lang.Math.pow;
-
 @RestController
-@RequestMapping("/api/driver/locations")
+@RequestMapping("/api/driver/trips")
 @CrossOrigin(origins = "*")
 @RequiredArgsConstructor
-public class DriverLocationController {
+public class DriverTripController {
     private final TripRepository tripRepo;
     private final LocationLogRepository logRepo;
-    private final UserRepository userRepo;
     private final ChecklistRepository checklistRepo;
     private final ChecklistItemRepository checklistItemRepo;
     private final UserStreamService streamService;
     private final JwtUtil jwtUtil;
-
-    @GetMapping("/hello")
-    public String hello() {
-        return "Hello!";
-    }
 
     @PostMapping("/start")
     public ResponseEntity<?> startTrip(@RequestHeader("Authorization") String authHeader) {
@@ -54,7 +50,7 @@ public class DriverLocationController {
         return ResponseEntity.ok(savedTrip.getId());
     }
 
-    @PostMapping("/end/{tripId}")
+    @PostMapping("/{tripId}/end")
     public ResponseEntity<?> endTrip(
             @RequestHeader("Authorization") String authHeader,
             @PathVariable Integer tripId) {
@@ -77,24 +73,22 @@ public class DriverLocationController {
         trip.setStatus(TripStatus.COMPLETED);
         trip.setEndedAt(ZonedDateTime.now());
         trip.setFleetId(fleetId);
-        Trip savedTrip = tripRepo.save(trip);
+        tripRepo.save(trip);
 
         return ResponseEntity.ok().build();
     }
 
-    @PostMapping("/log")
+    @PostMapping("/{tripId}/locations")
     public ResponseEntity<?> logLocation(
             @RequestHeader("Authorization") String authHeader,
-            @RequestBody LocationLog newLog, Authentication authentication) {
+            @PathVariable Integer tripId,
+            @RequestBody LocationLog newLog) {
 
         String jwt = authHeader.substring(7);
         Integer userId = jwtUtil.extractUserId(jwt);
 
-        if (newLog.getTripId() == null) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("tripId is required");
-        }
-        Trip trip = tripRepo.findById(newLog.getTripId())
-                .orElseThrow(() -> new RuntimeException("Trip not found with id: " + newLog.getTripId()));
+        Trip trip = tripRepo.findById(tripId)
+                .orElseThrow(() -> new RuntimeException("Trip not found with id: " + tripId));
         // check if trip belongs to this user
         if (!trip.getUserId().equals(userId)) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Trip not found");
@@ -103,6 +97,8 @@ public class DriverLocationController {
         if (trip.getStatus() != TripStatus.ACTIVE) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Trip is no longer active");
         }
+
+        newLog.setTripId(tripId);
 
         if (newLog.getRecordedAt() == null) {
             newLog.setRecordedAt(ZonedDateTime.now());
@@ -114,9 +110,10 @@ public class DriverLocationController {
         return ResponseEntity.ok().build();
     }
 
-    @PostMapping("/batch-log")
+    @PostMapping("/{tripId}/locations/batch")
     public ResponseEntity<?> logLocationBatch(
             @RequestHeader("Authorization") String authHeader,
+            @PathVariable Integer tripId,
             @RequestBody List<LocationLog> logs) {
 
         if (logs == null || logs.isEmpty()) {
@@ -126,10 +123,6 @@ public class DriverLocationController {
         String jwt = authHeader.substring(7);
         Integer userId = jwtUtil.extractUserId(jwt);
 
-        Integer tripId = logs.getFirst().getTripId();
-        if (tripId == null) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("tripId is required");
-        }
         Trip trip = tripRepo.findById(tripId)
                 .orElseThrow(() -> new RuntimeException("Trip not found with id: " + tripId));
 
@@ -142,12 +135,13 @@ public class DriverLocationController {
         }
 
         for (LocationLog log : logs) {
-            if (log.getTripId() == null || !log.getTripId().equals(tripId)) {
+            if (log.getTripId() != null && !log.getTripId().equals(tripId)) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Varying or missing trip Ids");
             }
             if (log.getRecordedAt() == null) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("log time is required");
             }
+            log.setTripId(tripId);
         }
 
         List<LocationLog> savedLogs = logRepo.saveAll(logs);
@@ -224,74 +218,5 @@ public class DriverLocationController {
                 completedChecklists,
                 updatedChecklistWithItems
         ));
-    }
-
-    @GetMapping("/assigned-checklists")
-    public List<Checklist> assignedChecklist(@RequestHeader("Authorization") String authHeader) {
-        String jwt = authHeader.substring(7);
-        Integer userId = jwtUtil.extractUserId(jwt);
-
-        return checklistRepo.findByDriverId(userId);
-    }
-
-    @GetMapping("/assigned-checklists-with-items")
-    public List<ChecklistWithItemsDTO> assignedChecklistWithItems(@RequestHeader("Authorization") String authHeader) {
-        String jwt = authHeader.substring(7);
-        Integer userId = jwtUtil.extractUserId(jwt);
-        Integer fleetId = jwtUtil.extractFleetId(jwt);
-
-        List<Checklist> checklists = checklistRepo.findByFleetIdAndDriverIdWithItems(fleetId, userId);
-
-        return checklists.stream()
-                .map(c -> new ChecklistWithItemsDTO(c, c.getItems()))
-                .toList();
-    }
-
-    @GetMapping("/assigned-checklists/{checklistId}")
-    public List<ChecklistItem> assignedChecklist(@RequestHeader("Authorization") String authHeader
-            , @PathVariable Integer checklistId) {
-        String jwt = authHeader.substring(7);
-        Integer userId = jwtUtil.extractUserId(jwt);
-        Integer fleetId = jwtUtil.extractFleetId(jwt);
-
-        Checklist checklist = checklistRepo.findByIdAndDriverId(checklistId, userId)
-                .orElseThrow(() -> new RuntimeException("Checklist doesent exist"));
-        return checklistItemRepo.findByChecklistId(checklistId);
-    }
-
-    @PostMapping("/checklist/{checklistId}/add-items")
-    public ResponseEntity<?> addChecklistItems(
-            @RequestHeader("Authorization") String authHeader,
-            @PathVariable Integer checklistId, @RequestBody List<ChecklistItem> items) {
-        String jwt = authHeader.substring(7);
-        Integer userId = jwtUtil.extractUserId(jwt);
-
-        Checklist checklist = checklistRepo.findByIdAndDriverId(checklistId, userId)
-                .orElseThrow(() -> new RuntimeException("Checklist does not exist"));
-
-        for (ChecklistItem item : items) {
-            item.setChecklist(checklist);
-            item.setAddedById(userId);
-        }
-
-        checklistItemRepo.saveAll(items);
-
-        return ResponseEntity.ok("Synced " + items.size() + " item records.");
-    }
-
-    @DeleteMapping("/checklist/{checklistId}/delete-item/{itemId}")
-    public ResponseEntity<?> deleteChecklistItems(
-            @RequestHeader("Authorization") String authHeader, @PathVariable Integer itemId, @PathVariable Integer checklistId) {
-        String jwt = authHeader.substring(7);
-        Integer userId = jwtUtil.extractUserId(jwt);
-
-        long deletedCount = checklistItemRepo.deleteByIdAndAddedById(itemId, userId);
-
-        if (deletedCount == 0) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body("You do not have permission to delete this item or it does not exist.");
-        }
-
-        return ResponseEntity.ok("Removed item.");
     }
 }
